@@ -1,3 +1,15 @@
+#Visualisation parameters:
+X_SCALE = 4
+Y_SCALE = 4
+IMAGE_Y = 200 * Y_SCALE
+IMAGE_X = 500 * X_SCALE
+IMAGE_D = 400 * X_SCALE
+IMAGE_S = 50 * Y_SCALE
+D_BIAS = -600 * X_SCALE
+S_BIAS = 0 * Y_SCALE
+X_BIAS = 0 * X_SCALE
+Y_BIAS = 0 * Y_SCALE
+
 DATA_FILES = ['./M40draft2.csv']
 '''
 DATA_FILES = ['./Data/M40_h06.csv',
@@ -19,21 +31,19 @@ LANE_MARKINGS_FILE = './LaneMarkingsM40.csv'
 XY_IMAGE_SAVE_DIR = './images_XY'
 DS_IMAGE_SAVE_DIR = './images_DS'
 
-MAX_PLOTTED_FRAME =200
+MAX_PLOTTED_FRAME =10000
+
+PROCESSED_DATASET_DIR = 'Autoplex_CPM'
+META_DIR = 'Metas'
+STATIC_DIR = 'Statics'
+TRACK_DIR = 'Tracks'
+PICKLE_DIR = 'Pickles'
 
 
-X_SCALE = 4
-Y_SCALE = 4
-IMAGE_Y = 200 * Y_SCALE
-IMAGE_X = 500 * X_SCALE
-IMAGE_D = 400 * X_SCALE
-IMAGE_S = 50 * Y_SCALE
-D_BIAS = -600 * X_SCALE
-S_BIAS = 0 * Y_SCALE
-VEHICLE_WIDTH = 2 * Y_SCALE
-VEHICLE_LENGTH = 5 * X_SCALE
-X_BIAS = 0 * X_SCALE
-Y_BIAS = 0 * Y_SCALE
+AVG_WIDTH = 2
+AVG_LENGTH = 5
+
+
 
 LANE_ID = 'laneId'
 FRAME = 'frame'
@@ -42,15 +52,28 @@ X = 'x'
 Y = 'y'
 S = 's'
 D = 'd'
-XVELOCITY = 'xVelocity'
-YVELOCITY = 'yVelocity'
-
+S_S = 's_smooth'
+D_S = 'd_smooth'
+X_VELOCITY = 'xVelocity'
+Y_VELOCITY = 'yVelocity'
+YAW = 'yaw'
 lon_1 = 'Inner_lon'
 lat_1 = 'Inner_lat'
 lon_2 = 'Middle_lon'
 lat_2 = 'Middle_lat'
 lon_3 = 'Outer_lon'
 lat_3 = 'Outer_lat'
+
+LM = {
+    lon_1:[0,0],
+    lat_1:[0,1],
+    lon_2:[1,0],
+    lat_2:[1,1],
+    lon_3:[2,0],
+    lat_3:[2,1],
+}
+
+
 LINE_THICKNESS = 1
 
 ORIGIN_LON = -1.6101445
@@ -67,3 +90,49 @@ PTTLLC = "PredictedTimeToLeftLaneChange"
 TTRLC = "TimeToRightLaneChange"
 TTLLC = "TimeToLeftLaneChange"
 FPS = 10
+
+
+# Meta
+#LOWER_LANE_MARKINGS = "lowerLaneMarkings"
+# Statics
+#DRIVING_DIRECTION = "drivingDirection"
+# Tracking
+FRAME = "frame"
+TRACK_ID = "id"
+X = "x"
+Y = "y"
+X_VELOCITY = "xVelocity"
+Y_VELOCITY = "yVelocity"
+X_ACCELERATION = "xAcceleration"
+Y_ACCELERATION = "yAcceleration"
+WIDTH = "width"
+HEIGHT = "height"
+PRECEDING_ID = "precedingId"
+FOLLOWING_ID = "followingId"
+LEFT_PRECEDING_ID = "leftPrecedingId"
+LEFT_ALONGSIDE_ID = "leftAlongsideId"
+LEFT_FOLLOWING_ID = "leftFollowingId"
+RIGHT_PRECEDING_ID = "rightPrecedingId"
+RIGHT_ALONGSIDE_ID = "rightAlongsideId"
+RIGHT_FOLLOWING_ID = "rightFollowingId"
+LANE_ID = "laneId"
+SV_IDs = [
+        PRECEDING_ID, 
+        FOLLOWING_ID,
+        LEFT_PRECEDING_ID, 
+        LEFT_ALONGSIDE_ID,
+        LEFT_FOLLOWING_ID, 
+        RIGHT_PRECEDING_ID, 
+        RIGHT_ALONGSIDE_ID, 
+        RIGHT_FOLLOWING_ID
+        ]
+SV_IDS_ABBR = [
+    'PV',
+    'FV',
+    'LPV',
+    'LAV',
+    'LFV',
+    'RPV',
+    'RAV',
+    'RFV'
+]
