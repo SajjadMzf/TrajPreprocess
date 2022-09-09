@@ -129,6 +129,8 @@ class VisualiseData:
 if __name__ == '__main__':
     processed_data = ['./M40draft2_processed.csv']
     preprocess = PreprocessData(processed_data, p.LANE_MARKINGS_FILE)
+    print(preprocess.lane_markings_s)
+    exit()
     preprocess.update_track_frame_data_list()
 
     visualiser = VisualiseData(preprocess.track_data_list[0], 

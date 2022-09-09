@@ -24,6 +24,36 @@ class PreprocessData():
         for data_file in data_files:
             df = pd.read_csv(data_file)
             self.data_df_list.append(df)
+        
+        self.metas_columns = ['id','frameRate','locationId','speedLimit','month','weekDay','startTime',
+                            'duration','totalDrivenDistance','totalDrivenTime','numVehicles','numCars','numTrucks','upperLaneMarkings','lowerLaneMarkings']
+        self.statics_columns = ['id','width','height','initialFrame','finalFrame','numFrames','class',
+                            'drivingDirection','traveledDistance','minXVelocity','maxXVelocity','meanXVelocity','minDHW','minTHW','minTTC','numLaneChanges']
+
+    def export_statics_metas(self):
+        meta_data = [-1]*len(self.metas_columns)
+        meta_data[self.metas_columns.index('upperLaneMarkings')] = self.lane_markings_s.tolist()
+        print(meta_data)
+        print(self.metas_columns)
+        meta_df = pd.DataFrame([meta_data], columns= self.metas_columns)
+        for df_itr, df in enumerate(self.data_df_list):
+            
+
+            static_df = pd.DataFrame()
+            static_df[p.TRACK_ID] = df[p.TRACK_ID]
+            remaining_columns = self.statics_columns
+            static_df['drivingDirection'] = np.ones((len(static_df[p.TRACK_ID]))) 
+            remaining_columns.remove('id')
+            remaining_columns.remove('drivingDirection')
+            
+            for column in remaining_columns:
+                static_df[column] = np.ones((len(static_df[p.TRACK_ID])))*-1
+            
+            meta_data_file = self.data_files[df_itr].split('.csv')[0] + '_recordingMeta.csv'
+            static_data_file = self.data_files[df_itr].split('.csv')[0] + '_tracksMeta.csv'
+            
+            meta_df.to_csv(meta_data_file, index = False)
+            static_df.to_csv(static_data_file, index = False)
             
 
     def export_df(self, name_extension,column_list):
@@ -262,6 +292,8 @@ class PreprocessData():
 
 
 if __name__ == '__main__':
+    
+    '''
     column_list = [p.FRAME, p.TRACK_ID, p.X, p.Y, p.S, p.D, p.S_S, p.D_S, p.WIDTH, p.HEIGHT, 
                 p.X_VELOCITY, p.Y_VELOCITY, p.X_ACCELERATION, p.Y_ACCELERATION,
                 p.PRECEDING_ID, p.FOLLOWING_ID, p.LEFT_PRECEDING_ID, p.LEFT_ALONGSIDE_ID, p.LEFT_FOLLOWING_ID,
@@ -276,3 +308,8 @@ if __name__ == '__main__':
     preprocess.calculate_svs() # calculate SV ids on frame groups
     preprocess.update_df(source='frame_data') # update df and track groups based on frame group
     preprocess.export_df(name_extension='_processed', column_list = column_list)
+    '''
+    ## export statics meta:
+    processed_data = ['./M40draft2_processed.csv']
+    preprocess = PreprocessData(processed_data, p.LANE_MARKINGS_FILE)
+    preprocess.export_statics_metas()
