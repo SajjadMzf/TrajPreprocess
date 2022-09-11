@@ -11,6 +11,7 @@ from utils_functions import digital_filter
 # From ID,Frame,X,Y to xVelocity, yVelocity, xAcceleration, yAcceleration, SVs_ID
 class PreprocessData():
     def __init__(self, data_files, lane_markings_file):
+        self.FPS = 10
         self.lane_markings = pd.read_csv(lane_markings_file)
         self.lane_markings = self.lane_markings.to_dict(orient='list')
         self.lane_markings_xy, self.lane_markings_ds = self.get_lane_markings()
@@ -21,8 +22,11 @@ class PreprocessData():
         self.data_df_list = []
         self.track_data_list = []
         self.frame_data_list = []
+        self.save_dir = p.SAVE_DIR
+        self.load_dir = p.LOAD_DIR
         for data_file in data_files:
-            df = pd.read_csv(data_file)
+            load_complete_dir = os.path.join(self.load_dir, data_file)
+            df = pd.read_csv(load_complete_dir)
             self.data_df_list.append(df)
         
         self.metas_columns = ['id','frameRate','locationId','speedLimit','month','weekDay','startTime',
@@ -33,14 +37,16 @@ class PreprocessData():
     def export_statics_metas(self):
         meta_data = [-1]*len(self.metas_columns)
         meta_data[self.metas_columns.index('upperLaneMarkings')] = self.lane_markings_s.tolist()
+        meta_data[self.metas_columns.index('frameRate')] = self.FPS
         print(meta_data)
         print(self.metas_columns)
         meta_df = pd.DataFrame([meta_data], columns= self.metas_columns)
         for df_itr, df in enumerate(self.data_df_list):
             
-
             static_df = pd.DataFrame()
-            static_df[p.TRACK_ID] = df[p.TRACK_ID]
+            track_ids = df[p.TRACK_ID].values
+            track_ids = np.unique(track_ids)
+            static_df[p.TRACK_ID] = track_ids
             remaining_columns = self.statics_columns
             static_df['drivingDirection'] = np.ones((len(static_df[p.TRACK_ID]))) 
             remaining_columns.remove('id')
@@ -51,22 +57,26 @@ class PreprocessData():
             
             meta_data_file = self.data_files[df_itr].split('.csv')[0] + '_recordingMeta.csv'
             static_data_file = self.data_files[df_itr].split('.csv')[0] + '_tracksMeta.csv'
-            
-            meta_df.to_csv(meta_data_file, index = False)
-            static_df.to_csv(static_data_file, index = False)
+            meta_cdir = os.path.join(self.save_dir+'Metas', meta_data_file)
+            static_cdir = os.path.join(self.save_dir+'Statics', static_data_file)
+            meta_df.to_csv(meta_cdir, index = False)
+            static_df.to_csv(static_cdir, index = False)
             
 
-    def export_df(self, name_extension,column_list):
+    def export_df(self,column_list):
         for file_itr, data_file in enumerate(self.data_files):
-            pr_data_file = data_file.split('.csv')[0] + name_extension + '.csv'
+            print('Exporting file: {} with {} Tracks'.format(self.data_files[file_itr], len(self.track_data_list[file_itr])))
+            save_cdir = os.path.join(self.save_dir+'Tracks', data_file)
             df = self.data_df_list[file_itr][column_list]
             df.sort_values(by=[p.ID, p.FRAME], inplace = True)
-            df.to_csv(pr_data_file, index = False)
+            df.to_csv(save_cdir, index = False)
 
     def update_track_frame_data_list(self):
+        
         self.track_data_list = []
         self.frame_data_list = []
         for df_itr in range(len(self.data_df_list)):
+            print('Update Track and Frame data lists of file: {}'.format(self.data_files[df_itr]))
             self.track_data_list.append(group_df(self.data_df_list[df_itr],by = p.TRACK_ID))
             self.frame_data_list.append(group_df(self.data_df_list[df_itr], by = p.FRAME))
 
@@ -74,14 +84,16 @@ class PreprocessData():
         if source == 'track_data':
             self.data_df_list = []  
             self.frame_data_list = []
-            for track_data in self.track_data_list:
+            for file_itr, track_data in enumerate(self.track_data_list):
+                print('Update DF from source{} of file: {}'.format(source ,self.data_files[file_itr]))
                 df = group2df(track_data)
                 self.data_df_list.append(df)      
                 self.frame_data_list.append(group_df(df, by = p.FRAME))
         elif source == 'frame_data':
             self.data_df_list = []  
             self.track_data_list = []
-            for frame_data in self.frame_data_list:
+            for file_itr, frame_data in enumerate(self.frame_data_list):
+                print('Update DF from source{} of file: {}'.format(source ,self.data_files[file_itr]))
                 df = group2df(frame_data)
                 self.data_df_list.append(df)      
                 self.track_data_list.append(group_df(df, by = p.TRACK_ID))
@@ -90,7 +102,7 @@ class PreprocessData():
     
     def initial_cleaning(self):
         for df_itr, df in enumerate(self.data_df_list):
-            
+            print('Initial Cleaning of file: {}'.format(self.data_files[df_itr]))
             # Select required columns and disregard the rest
             df.drop(columns=df.columns.difference([p.FRAME, p.ID, p.X, p.Y]), inplace=True)
             
@@ -136,6 +148,7 @@ class PreprocessData():
         
     def convert2frenet(self, frenet_ref):
         for file_itr in range(len(self.track_data_list)):
+            print('Convert to Frenet Coordination of file: {}'.format(self.data_files[file_itr]))
             # convert to frenet frame
             for id, track_data in enumerate(self.track_data_list[file_itr]):
                 num_frames = len(track_data[p.X])
@@ -149,6 +162,7 @@ class PreprocessData():
     
     def get_lane_id(self):
         for file_itr in range(len(self.track_data_list)):
+            print('Get Lane ID of file: {}'.format(self.data_files[file_itr]))
             olv_c = 0
             ilv_c = 0
             for id, track_data in enumerate(self.track_data_list[file_itr]):
@@ -157,22 +171,25 @@ class PreprocessData():
                 for fr in range(total_frames):
                     for i in range(3):
                         if track_data[p.S][fr]<=self.lane_markings_s[i+1] and track_data[p.S][fr]>=self.lane_markings_s[i]:
-                            lane_id[fr] = i+1
+                            lane_id[fr] = i+2 #lane ids start at 2 in highD
+                    
+                    #exceptions
                     if track_data[p.S][fr]<self.lane_markings_s[0]:
                         ilv_c +=1
-                    
+                        lane_id[fr] = 2
                     if track_data[p.S][fr]>self.lane_markings_s[3]:
                         olv_c +=1
-                        lane_id[fr] = 3
+                        lane_id[fr] = 4
                     
                 self.track_data_list[file_itr][id][p.LANE_ID] = lane_id
-            print('File: {}. Outer lane violation counts (classified as lane 3): {}, Inner lane violation counts (classified as lane 0): {}'.format(file_itr+1, olv_c, ilv_c))      
+            print('File: {}. Outer lane violation counts (classified as lane 4): {}, Inner lane violation counts (classified as lane 2): {}'.format(file_itr+1, olv_c, ilv_c))      
     
     def estimate_vel_acc(self):
         # https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter
         # velo -2,-1,0,1,2/10
         # acc 2,-1,-2,-1,2/7
         for file_itr in range(len(self.track_data_list)):
+            print('Estimate Velo/Acc of file: {}'.format(self.data_files[file_itr]))
             for id, track_data in enumerate(self.track_data_list[file_itr]):
                 x = track_data[p.D]
                 y = track_data[p.S]
@@ -195,6 +212,7 @@ class PreprocessData():
             
     def calculate_svs(self):
         for file_itr in range(len(self.frame_data_list)):
+            print('Calculate SVs of file: {}'.format(self.data_files[file_itr]))
             for frame_itr, frame_data in enumerate(self.frame_data_list[file_itr]):
                 for track_itr, track_id in enumerate(frame_data[p.ID]):
                     lane_id = frame_data[p.LANE_ID][frame_data[p.ID] == track_id]
@@ -293,7 +311,7 @@ class PreprocessData():
 
 if __name__ == '__main__':
     
-    '''
+    
     column_list = [p.FRAME, p.TRACK_ID, p.X, p.Y, p.S, p.D, p.S_S, p.D_S, p.WIDTH, p.HEIGHT, 
                 p.X_VELOCITY, p.Y_VELOCITY, p.X_ACCELERATION, p.Y_ACCELERATION,
                 p.PRECEDING_ID, p.FOLLOWING_ID, p.LEFT_PRECEDING_ID, p.LEFT_ALONGSIDE_ID, p.LEFT_FOLLOWING_ID,
@@ -307,9 +325,11 @@ if __name__ == '__main__':
     preprocess.update_df(source='track_data') # update df and frame groups based on track group
     preprocess.calculate_svs() # calculate SV ids on frame groups
     preprocess.update_df(source='frame_data') # update df and track groups based on frame group
-    preprocess.export_df(name_extension='_processed', column_list = column_list)
+    preprocess.export_df( column_list = column_list)
+    
     '''
     ## export statics meta:
     processed_data = ['./M40draft2_processed.csv']
     preprocess = PreprocessData(processed_data, p.LANE_MARKINGS_FILE)
     preprocess.export_statics_metas()
+    '''

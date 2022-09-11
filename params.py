@@ -10,23 +10,26 @@ S_BIAS = 0 * Y_SCALE
 X_BIAS = 0 * X_SCALE
 Y_BIAS = 0 * Y_SCALE
 
-DATA_FILES = ['./M40draft2.csv']
-'''
-DATA_FILES = ['./Data/M40_h06.csv',
-                './Data/M40_h07.csv', 
-                './Data/M40_h08.csv',
-                './Data/M40_h09.csv', 
-                './Data/M40_h10.csv', 
-                './Data/M40_h11.csv', 
-                './Data/M40_h12.csv', 
-                './Data/M40_h13.csv', 
-                './Data/M40_h14.csv', 
-                './Data/M40_h15.csv', 
-                './Data/M40_h16.csv', 
-                './Data/M40_h17.csv', 
-                './Data/M40_h18.csv', 
-                './Data/M40_h19.csv'] #h10 for testing, rest for training
-'''         
+#DATA_FILES = ['../../Dataset/Autoplex/Raw/M40draft2.csv']
+
+DATA_FILES = ['M40_h06.csv',
+                'M40_h07.csv', 
+                'M40_h08.csv',
+                'M40_h09.csv', 
+                'M40_h10.csv', 
+                'M40_h11.csv', 
+                'M40_h12.csv', 
+                'M40_h13.csv', 
+                'M40_h14.csv', 
+                'M40_h15.csv', 
+                'M40_h16.csv', 
+                'M40_h17.csv', 
+                'M40_h18.csv', 
+                'M40_h19.csv'] #h10 for testing, rest for training
+
+LOAD_DIR = '../../Dataset/Autoplex/Raw/'
+SAVE_DIR = '../../Dataset/Autoplex/'
+
 LANE_MARKINGS_FILE = './LaneMarkingsM40.csv'
 XY_IMAGE_SAVE_DIR = './images_XY'
 DS_IMAGE_SAVE_DIR = './images_DS'
