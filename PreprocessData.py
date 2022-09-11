@@ -31,26 +31,25 @@ class PreprocessData():
         
         self.metas_columns = ['id','frameRate','locationId','speedLimit','month','weekDay','startTime',
                             'duration','totalDrivenDistance','totalDrivenTime','numVehicles','numCars','numTrucks','upperLaneMarkings','lowerLaneMarkings']
-        self.statics_columns = ['id','width','height','initialFrame','finalFrame','numFrames','class',
-                            'drivingDirection','traveledDistance','minXVelocity','maxXVelocity','meanXVelocity','minDHW','minTHW','minTTC','numLaneChanges']
+        self.statics_columns = ['width','height','initialFrame','finalFrame','numFrames','class',
+                            'traveledDistance','minXVelocity','maxXVelocity','meanXVelocity','minDHW','minTHW','minTTC','numLaneChanges'] #except 'id' and 'drivingDirection' 
 
     def export_statics_metas(self):
         meta_data = [-1]*len(self.metas_columns)
-        meta_data[self.metas_columns.index('upperLaneMarkings')] = self.lane_markings_s.tolist()
+        meta_data[self.metas_columns.index('upperLaneMarkings')] = ';'.join(str(e) for e in self.lane_markings_s.tolist())
+        meta_data[self.metas_columns.index('lowerLaneMarkings')] = ';'.join(str(e) for e in self.lane_markings_s.tolist())
         meta_data[self.metas_columns.index('frameRate')] = self.FPS
         print(meta_data)
         print(self.metas_columns)
         meta_df = pd.DataFrame([meta_data], columns= self.metas_columns)
         for df_itr, df in enumerate(self.data_df_list):
-            
+            print('Exporting statics/metas of file : {}'.format(self.data_files[df_itr]))
             static_df = pd.DataFrame()
             track_ids = df[p.TRACK_ID].values
             track_ids = np.unique(track_ids)
             static_df[p.TRACK_ID] = track_ids
             remaining_columns = self.statics_columns
             static_df['drivingDirection'] = np.ones((len(static_df[p.TRACK_ID]))) 
-            remaining_columns.remove('id')
-            remaining_columns.remove('drivingDirection')
             
             for column in remaining_columns:
                 static_df[column] = np.ones((len(static_df[p.TRACK_ID])))*-1
@@ -85,7 +84,7 @@ class PreprocessData():
             self.data_df_list = []  
             self.frame_data_list = []
             for file_itr, track_data in enumerate(self.track_data_list):
-                print('Update DF from source{} of file: {}'.format(source ,self.data_files[file_itr]))
+                print('Update DF from source {} of file: {}'.format(source ,self.data_files[file_itr]))
                 df = group2df(track_data)
                 self.data_df_list.append(df)      
                 self.frame_data_list.append(group_df(df, by = p.FRAME))
@@ -93,7 +92,7 @@ class PreprocessData():
             self.data_df_list = []  
             self.track_data_list = []
             for file_itr, frame_data in enumerate(self.frame_data_list):
-                print('Update DF from source{} of file: {}'.format(source ,self.data_files[file_itr]))
+                print('Update DF from source {} of file: {}'.format(source ,self.data_files[file_itr]))
                 df = group2df(frame_data)
                 self.data_df_list.append(df)      
                 self.track_data_list.append(group_df(df, by = p.TRACK_ID))
@@ -318,6 +317,8 @@ if __name__ == '__main__':
                 p.RIGHT_PRECEDING_ID, p.RIGHT_ALONGSIDE_ID, p.RIGHT_FOLLOWING_ID, p.LANE_ID ]
     preprocess = PreprocessData(p.DATA_FILES, p.LANE_MARKINGS_FILE)
     preprocess.initial_cleaning() # Clean df
+    preprocess.export_statics_metas()
+    #exit()
     preprocess.update_track_frame_data_list() # group by track id and frame
     preprocess.convert2frenet(preprocess.lane_markings_xy[:,0]) #convert track groups to frenet coordinates
     preprocess.get_lane_id() # get lane ids for track groups
