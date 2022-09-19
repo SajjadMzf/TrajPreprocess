@@ -27,6 +27,7 @@ class PreprocessData():
         self.data_df_list = []
         self.track_data_list = []
         self.frame_data_list = []
+        self.save_dir = p.SAVE_DIR
         self.df_save_dir = p.DF_SAVE_DIR
         self.track_save_dir = p.TRACK_SAVE_DIR
         self.frame_save_dir = p.FRAME_SAVE_DIR
@@ -397,6 +398,7 @@ class PreprocessData():
         return lane_markings_xy, lane_markings_ds
       
 def full_preprocess():
+    assert(p.DF_LOAD_DIR == '../../Dataset/Autoplex/Raw/')
     column_list = [p.FRAME, p.TRACK_ID, p.X, p.Y, p.S, p.D, p.S_S, p.D_S, p.WIDTH, p.HEIGHT, 
                 p.X_VELOCITY, p.Y_VELOCITY, p.X_ACCELERATION, p.Y_ACCELERATION,
                 p.PRECEDING_ID, p.FOLLOWING_ID, p.LEFT_PRECEDING_ID, p.LEFT_ALONGSIDE_ID, p.LEFT_FOLLOWING_ID,
@@ -422,6 +424,8 @@ def full_preprocess():
 
 
 if __name__ == '__main__':
+    full_preprocess()
+    '''
     preprocess = PreprocessData(p.DATA_FILES, p.LANE_MARKINGS_FILE)
     preprocess.import_data('df')
     preprocess.import_data('frames')
@@ -432,3 +436,4 @@ if __name__ == '__main__':
     preprocess.export_data('df', args = (p.column_list,))
     preprocess.export_data('tracks')
     preprocess.export_data('frames')
+    '''

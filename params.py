@@ -28,10 +28,11 @@ DATA_FILES = ['M40_h06.csv',
                 'M40_h18.csv', 
                 'M40_h19.csv'] #h10 for testing, rest for training
 
-DF_LOAD_DIR = '../../Dataset/Autoplex/Tracks/' #Change to Raws for preprocessing from raw data
+DF_LOAD_DIR = '../../Dataset/Autoplex/Raw/' #Change to Raws for preprocessing from raw data
 TRACK_LOAD_DIR = '../../Dataset/Autoplex/Pickles'
 FRAME_LOAD_DIR = '../../Dataset/Autoplex/Pickles'
 
+SAVE_DIR = '../../Dataset/Autoplex/'
 DF_SAVE_DIR = '../../Dataset/Autoplex/Tracks'
 TRACK_SAVE_DIR = '../../Dataset/Autoplex/Pickles'
 FRAME_SAVE_DIR = '../../Dataset/Autoplex/Pickles'
