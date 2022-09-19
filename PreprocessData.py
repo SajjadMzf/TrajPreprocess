@@ -11,23 +11,29 @@ from utils_functions import digital_filter
 # From ID,Frame,X,Y to xVelocity, yVelocity, xAcceleration, yAcceleration, SVs_ID
 class PreprocessData():
     def __init__(self, data_files, lane_markings_file):
+        if p.DEBUG_FLAG:
+            print('Debug mode: processing only 1 file')
+            self.data_files = [data_files[0]]
+        else:
+            self.data_files = data_files
         self.FPS = 10
         self.lane_markings = pd.read_csv(lane_markings_file)
         self.lane_markings = self.lane_markings.to_dict(orient='list')
         self.lane_markings_xy, self.lane_markings_ds = self.get_lane_markings()
         self.lane_markings_s = np.mean(self.lane_markings_ds[:,:,1], axis=0)
         
-        self.data_files = data_files
+        
 
         self.data_df_list = []
         self.track_data_list = []
         self.frame_data_list = []
-        self.save_dir = p.SAVE_DIR
-        self.load_dir = p.LOAD_DIR
-        for data_file in data_files:
-            load_complete_dir = os.path.join(self.load_dir, data_file)
-            df = pd.read_csv(load_complete_dir)
-            self.data_df_list.append(df)
+        self.df_save_dir = p.DF_SAVE_DIR
+        self.track_save_dir = p.TRACK_SAVE_DIR
+        self.frame_save_dir = p.FRAME_SAVE_DIR
+        self.df_load_dir = p.DF_LOAD_DIR
+        self.track_load_dir = p.TRACK_LOAD_DIR
+        self.frame_load_dir = p.FRAME_LOAD_DIR
+        
         
         self.metas_columns = ['id','frameRate','locationId','speedLimit','month','weekDay','startTime',
                             'duration','totalDrivenDistance','totalDrivenTime','numVehicles','numCars','numTrucks','upperLaneMarkings','lowerLaneMarkings']
@@ -61,23 +67,92 @@ class PreprocessData():
             meta_df.to_csv(meta_cdir, index = False)
             static_df.to_csv(static_cdir, index = False)
             
-
-    def export_df(self,column_list):
-        for file_itr, data_file in enumerate(self.data_files):
-            print('Exporting file: {} with {} Tracks'.format(self.data_files[file_itr], len(self.track_data_list[file_itr])))
-            save_cdir = os.path.join(self.save_dir+'Tracks', data_file)
-            df = self.data_df_list[file_itr][column_list]
-            df.sort_values(by=[p.ID, p.FRAME], inplace = True)
-            df.to_csv(save_cdir, index = False)
-
-    def update_track_frame_data_list(self):
+    def import_data(self, data_type, args = (None,)):
+        if data_type == 'df':
+            for file_itr, data_file in enumerate(self.data_files):
+                print('Importing df file: {}.'.format(self.data_files[file_itr]))
+                load_cdir = os.path.join(self.df_load_dir, data_file)
+                df = pd.read_csv(load_cdir)
+                self.data_df_list.append(df)
         
-        self.track_data_list = []
-        self.frame_data_list = []
+        elif data_type == 'tracks':
+            self.track_data_list = []
+            for file_itr, data_file in enumerate(self.data_files):
+                track_data_file = data_file.split('.')[0]+ '_tracks.pickle'
+                print('Importing track file: {}.'.format(track_data_file))
+                load_cdir = os.path.join(self.track_load_dir, track_data_file)
+                with open(load_cdir, 'rb') as handle:
+                    self.track_data_list.append(pickle.load(handle))
+            
+        elif data_type == 'frames':
+            self.frame_data_list = []
+            for file_itr, data_file in enumerate(self.data_files):
+                frame_data_file = data_file.split('.')[0]+ '_frames.pickle'
+                print('Importing frame file: {}.'.format(frame_data_file))
+                load_cdir = os.path.join(self.frame_load_dir, frame_data_file )
+                with open(load_cdir, 'rb') as handle:
+                    self.frame_data_list.append(pickle.load(handle))
+        else:
+            raise(ValueError('Undefined data type'))
+    
+    def export_data(self, data_type, args= (None,)):
+        if data_type == 'df':
+            column_list = args[0]
+            for file_itr, data_file in enumerate(self.data_files):
+                print('Exporting DF file: {} with {} Tracks'.format(self.data_files[file_itr], len(self.track_data_list[file_itr])))
+                save_cdir = os.path.join(self.df_save_dir, data_file)
+                df = self.data_df_list[file_itr][column_list]
+                df.sort_values(by=[p.ID, p.FRAME], inplace = True)
+                df.to_csv(save_cdir, index = False)
+        
+        elif data_type == 'tracks':
+            for file_itr, data_file in enumerate(self.data_files):
+                tracks_data_file = data_file.split('.')[0]+ '_tracks.pickle'
+                print('Exporting Tracks file: {} with {} Tracks'.format(tracks_data_file, len(self.track_data_list[file_itr])))
+                save_cdir = os.path.join(self.track_save_dir, tracks_data_file)
+                with open(save_cdir, 'wb') as handle:
+                    pickle.dump(self.track_data_list[file_itr], handle, protocol=pickle.HIGHEST_PROTOCOL)
+            
+        elif data_type == 'frames':
+            column_list = args[0]
+            for file_itr, data_file in enumerate(self.data_files):
+                frame_data_file = data_file.split('.')[0]+ '_frames.pickle'
+                print('Exporting Frames file: {} with {} Frames'.format(frame_data_file, len(self.frame_data_list[file_itr])))
+                save_cdir = os.path.join(self.frame_save_dir,  frame_data_file)
+                with open(save_cdir, 'wb') as handle:
+                    pickle.dump(self.frame_data_list[file_itr], handle, protocol=pickle.HIGHEST_PROTOCOL)
+        
+        else:
+            raise(ValueError('Undefined data type'))
+    
+
+
+    def update_track_frame_data_list(self, data_type='both'):
+        
+        if data_type == 'both':
+            self.track_data_list = []
+            self.frame_data_list = []
+        elif data_type == 'tracks':
+            self.track_data_list = []
+        elif data_type == 'frames':
+            self.frame_data_list = []
+        else:
+            raise(ValueError('undefined data type'))
+        
         for df_itr in range(len(self.data_df_list)):
             print('Update Track and Frame data lists of file: {}'.format(self.data_files[df_itr]))
-            self.track_data_list.append(group_df(self.data_df_list[df_itr],by = p.TRACK_ID))
-            self.frame_data_list.append(group_df(self.data_df_list[df_itr], by = p.FRAME))
+            if data_type == 'both':
+                self.track_data_list.append(group_df(self.data_df_list[df_itr],by = p.TRACK_ID))
+                self.frame_data_list.append(group_df(self.data_df_list[df_itr], by = p.FRAME))
+            elif data_type == 'tracks':
+                self.track_data_list.append(group_df(self.data_df_list[df_itr],by = p.TRACK_ID))
+            elif data_type == 'frames':
+                self.frame_data_list.append(group_df(self.data_df_list[df_itr], by = p.FRAME))
+            else:
+                raise(ValueError('undefined data type'))
+            
+            
+
 
     def update_df(self, source = 'track_data'):
         if source == 'track_data':
@@ -158,7 +233,23 @@ class PreprocessData():
                 self.track_data_list[file_itr][id][p.D] = traj_frenet[:,0]
                 self.track_data_list[file_itr][id][p.S] = traj_frenet[:,1]
 
-    
+    def remove_invalid_tracks(self):
+        for file_itr in range(len(self.track_data_list)):
+            
+            print('Removing invalid tracks of file: {}'.format(self.data_files[file_itr]))
+            track_counter = 0
+            valid_ids = []
+            for id, track_data in enumerate(self.track_data_list[file_itr]):
+                road_violation_count = np.sum(np.logical_or(track_data[p.S]<self.lane_markings_s[0], track_data[p.S]>self.lane_markings_s[-1]))
+                if road_violation_count>0:
+                    track_counter +=1
+                    print('Track removed. File itr: {}, ID: {}, Length: {}, Violations: {}.'.format(file_itr, id, track_data[p.S].shape[0], road_violation_count))
+                else:
+                    valid_ids.append(id)
+            print('{}/{} Tracks removed'.format(track_counter, len(self.track_data_list[file_itr])))
+            self.track_data_list[file_itr] = [self.track_data_list[file_itr][valid_id] for valid_id in valid_ids]
+
+
     def get_lane_id(self):
         for file_itr in range(len(self.track_data_list)):
             print('Get Lane ID of file: {}'.format(self.data_files[file_itr]))
@@ -305,32 +396,39 @@ class PreprocessData():
 
         return lane_markings_xy, lane_markings_ds
       
-    
-
-
-if __name__ == '__main__':
-    
-    
+def full_preprocess():
     column_list = [p.FRAME, p.TRACK_ID, p.X, p.Y, p.S, p.D, p.S_S, p.D_S, p.WIDTH, p.HEIGHT, 
                 p.X_VELOCITY, p.Y_VELOCITY, p.X_ACCELERATION, p.Y_ACCELERATION,
                 p.PRECEDING_ID, p.FOLLOWING_ID, p.LEFT_PRECEDING_ID, p.LEFT_ALONGSIDE_ID, p.LEFT_FOLLOWING_ID,
                 p.RIGHT_PRECEDING_ID, p.RIGHT_ALONGSIDE_ID, p.RIGHT_FOLLOWING_ID, p.LANE_ID ]
     preprocess = PreprocessData(p.DATA_FILES, p.LANE_MARKINGS_FILE)
+    preprocess.import_data('df')
     preprocess.initial_cleaning() # Clean df
     preprocess.export_statics_metas()
-    #exit()
     preprocess.update_track_frame_data_list() # group by track id and frame
     preprocess.convert2frenet(preprocess.lane_markings_xy[:,0]) #convert track groups to frenet coordinates
+    preprocess.remove_invalid_tracks() # remove tacks that goes outside lanes
     preprocess.get_lane_id() # get lane ids for track groups
     preprocess.estimate_vel_acc() # estimate velocity and acceleration on each track group
     preprocess.update_df(source='track_data') # update df and frame groups based on track group
+    preprocess.update_track_frame_data_list() # group by track id and frame
     preprocess.calculate_svs() # calculate SV ids on frame groups
     preprocess.update_df(source='frame_data') # update df and track groups based on frame group
-    preprocess.export_df( column_list = column_list)
+    preprocess.update_track_frame_data_list() # group by track id and frame
     
-    '''
-    ## export statics meta:
-    processed_data = ['./M40draft2_processed.csv']
-    preprocess = PreprocessData(processed_data, p.LANE_MARKINGS_FILE)
-    preprocess.export_statics_metas()
-    '''
+    preprocess.export_data('df', args = (p.column_list,))
+    preprocess.export_data('tracks')
+    preprocess.export_data('frames')
+
+
+if __name__ == '__main__':
+    preprocess = PreprocessData(p.DATA_FILES, p.LANE_MARKINGS_FILE)
+    preprocess.import_data('df')
+    preprocess.import_data('frames')
+    preprocess.import_data('tracks')
+    preprocess.remove_invalid_tracks()
+    preprocess.update_df(source='track_data') # update df and frame groups based on track group
+    preprocess.update_track_frame_data_list() # group by track id and frame
+    preprocess.export_data('df', args = (p.column_list,))
+    preprocess.export_data('tracks')
+    preprocess.export_data('frames')

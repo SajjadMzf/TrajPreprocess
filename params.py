@@ -1,3 +1,4 @@
+DEBUG_FLAG = False
 #Visualisation parameters:
 X_SCALE = 4
 Y_SCALE = 4
@@ -27,8 +28,14 @@ DATA_FILES = ['M40_h06.csv',
                 'M40_h18.csv', 
                 'M40_h19.csv'] #h10 for testing, rest for training
 
-LOAD_DIR = '../../Dataset/Autoplex/Raw/'
-SAVE_DIR = '../../Dataset/Autoplex/'
+DF_LOAD_DIR = '../../Dataset/Autoplex/Tracks/' #Change to Raws for preprocessing from raw data
+TRACK_LOAD_DIR = '../../Dataset/Autoplex/Pickles'
+FRAME_LOAD_DIR = '../../Dataset/Autoplex/Pickles'
+
+DF_SAVE_DIR = '../../Dataset/Autoplex/Tracks'
+TRACK_SAVE_DIR = '../../Dataset/Autoplex/Pickles'
+FRAME_SAVE_DIR = '../../Dataset/Autoplex/Pickles'
+
 
 LANE_MARKINGS_FILE = './LaneMarkingsM40.csv'
 XY_IMAGE_SAVE_DIR = './images_XY'
@@ -139,3 +146,9 @@ SV_IDS_ABBR = [
     'RAV',
     'RFV'
 ]
+
+
+column_list = [FRAME, TRACK_ID, X, Y, S, D, S_S, D_S, WIDTH, HEIGHT, 
+                X_VELOCITY, Y_VELOCITY, X_ACCELERATION, Y_ACCELERATION,
+                PRECEDING_ID, FOLLOWING_ID, LEFT_PRECEDING_ID, LEFT_ALONGSIDE_ID, LEFT_FOLLOWING_ID,
+                RIGHT_PRECEDING_ID, RIGHT_ALONGSIDE_ID, RIGHT_FOLLOWING_ID, LANE_ID ]

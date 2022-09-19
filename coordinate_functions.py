@@ -2,6 +2,10 @@ import numpy as np
 from numpy.linalg import norm
 import math 
 
+def frenet2cart(traj, ref):
+
+    return 0
+
 def cart2frenet(traj, ref):
     '''
     traj = np array of size [T,2]

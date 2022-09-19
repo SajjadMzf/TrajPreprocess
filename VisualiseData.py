@@ -32,6 +32,7 @@ class VisualiseData:
         self.track_itr_list = [track[p.TRACK_ID][0] for track in self.track_data_list]
         self.frame_itr_list = [frame[p.FRAME][0] for frame in self.frame_data_list]
 
+    
     def visualise_tracks(self, track_ids):
         for tv_id in track_ids:
             tv_itr = self.track_itr_list.index(tv_id)
