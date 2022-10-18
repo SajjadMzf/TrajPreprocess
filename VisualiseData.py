@@ -52,7 +52,7 @@ class VisualiseData:
                     else:
                         text = 'NV:{}:{}'.format(lane_id,int(track_id))
                     image = self.plot_vehicle(image, 
-                                        (frame_data[p.D][track_itr], frame_data[p.S][track_itr]), 
+                                        (frame_data[p.D_S][track_itr], frame_data[p.S_S][track_itr]), 
                                         (frame_data[p.WIDTH][track_itr],frame_data[p.HEIGHT][track_itr]),
                                         (0,255,0),
                                         text,
@@ -128,16 +128,18 @@ class VisualiseData:
 
 
 if __name__ == '__main__':
-    processed_data = ['./M40draft2_processed.csv']
+    processed_data = [p.DATA_FILES[0]]
     preprocess = PreprocessData(processed_data, p.LANE_MARKINGS_FILE)
-    print(preprocess.lane_markings_s)
-    exit()
-    preprocess.update_track_frame_data_list()
-
+    preprocess.import_data('df')
+    preprocess.import_data('frames')
+    preprocess.import_data('tracks')
+    #print(preprocess.lane_markings_s)
+    #exit()
+    
     visualiser = VisualiseData(preprocess.track_data_list[0], 
                             preprocess.frame_data_list[0],
                             preprocess.lane_markings_xy, 
                             preprocess.lane_markings_s,
                             coordinate = 'frenet')
-    visualiser.plot_measurements([2,3,4,5,6,7,8,9,10,11,12,13])
-    #visualiser.visualise_tracks([2,3,4,5,6,7,8,9,10,11,12,13])
+    #visualiser.plot_measurements([2,3,4,5,6,7,8,9,10,11,12,13])
+    visualiser.visualise_tracks([2,3,4,5,6,7,8,9,10,11,12,13])

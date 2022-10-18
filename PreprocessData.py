@@ -10,7 +10,7 @@ import coordinate_functions as cf
 from utils_functions import digital_filter
 # From ID,Frame,X,Y to xVelocity, yVelocity, xAcceleration, yAcceleration, SVs_ID
 class PreprocessData():
-    def __init__(self, data_files, lane_markings_file):
+    def __init__(self, data_files, lane_markings_file, processed = False):
         if p.DEBUG_FLAG:
             print('Debug mode: processing only 1 file')
             self.data_files = [data_files[0]]
@@ -31,10 +31,14 @@ class PreprocessData():
         self.df_save_dir = p.DF_SAVE_DIR
         self.track_save_dir = p.TRACK_SAVE_DIR
         self.frame_save_dir = p.FRAME_SAVE_DIR
-        self.df_load_dir = p.DF_LOAD_DIR
-        self.track_load_dir = p.TRACK_LOAD_DIR
-        self.frame_load_dir = p.FRAME_LOAD_DIR
-        
+        if processed == False:
+            self.df_load_dir = p.DF_LOAD_DIR
+            self.track_load_dir = p.TRACK_LOAD_DIR
+            self.frame_load_dir = p.FRAME_LOAD_DIR
+        else:
+            self.df_load_dir = p.DF_LOAD_DIR
+            self.track_load_dir = p.TRACK_LOAD_DIR
+            self.frame_load_dir = p.FRAME_LOAD_DIR
         
         self.metas_columns = ['id','frameRate','locationId','speedLimit','month','weekDay','startTime',
                             'duration','totalDrivenDistance','totalDrivenTime','numVehicles','numCars','numTrucks','upperLaneMarkings','lowerLaneMarkings']
