@@ -31,7 +31,7 @@ ordered_preprocess_functions:
   - 'self.export_statics_metas()'
 meta_data:
   lane_markings: [[],[],[],[],[],[]]
-# These are the columns essential for traj pred: frame, id, x,y (in any coordinates/units)
+# These are the columns essential for conversion: frame, id, x,y (in any coordinates/units)
 essential_columns:
   FRAME: "Frame_ID"
   TRACK_ID: "Vehicle_ID"
