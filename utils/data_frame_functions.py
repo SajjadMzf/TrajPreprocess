@@ -3,10 +3,6 @@ import params as p
 import pandas as pd
 
 def group_df(df, by):
-    if p.D in df.columns and p.S in df.columns:
-        frenet = True
-    else:
-        frenet = False
     
     grouped = df.groupby([by], sort = True)
     current_group = 0

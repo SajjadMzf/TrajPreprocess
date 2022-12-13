@@ -1,0 +1,10 @@
+
+
+META_DIR: 'Metas'
+STATIC_DIR: 'Statics'
+TRACK_DIR: 'Tracks'
+PICKLE_DIR: 'Pickles'
+metas_columns: ['id','frameRate','locationId','speedLimit','month','weekDay','startTime',
+                            'duration','totalDrivenDistance','totalDrivenTime','numVehicles','numCars','numTrucks','upperLaneMarkings','lowerLaneMarkings']
+statics_columns: ['width','height','initialFrame','finalFrame','numFrames','class',
+                            'traveledDistance','minXVelocity','maxXVelocity','meanXVelocity','minDHW','minTHW','minTTC','numLaneChanges'] #except 'id' and 'drivingDirection' 
