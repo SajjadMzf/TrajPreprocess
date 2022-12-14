@@ -1,50 +1,38 @@
 dataset:
   name: 'exid'
-  import_dir: '../../Dataset/exid/Raws'
-  export_dir: '../../Dataset/NGSIM/'
-  filenames: ['01.csv','02.csv','03.csv','04.csv','05.csv','06.csv']
-  us101: [False, False, False, True, True, True]
-  fps: 10
+  description: '2_aachen_brand'
+  import_dir: '../../Dataset/exiD-dataset-v2.0/data'
+  export_dir: '../../Dataset/exid/'
+  # in dataset with large number of data files, we use fileranges and filestring
+  fileranges: range(39,53)
+  filestring: "{}_tracks.csv"
+  fps: 25
 visualisation:
-  image_width: 600 #in meters
-  image_height: 100
+  image_width: tbd #in meters
+  image_height: tbd
   x_bias: 10
   y_bias: 3
 ordered_preprocess_functions:
-  
-  - 'ngsim.relocate_tracking_point' 
-  - 'self.overwrite_data(source = "df")'
-  - 'ngsim.traj_smoothing'
-  - 'ngsim.calc_vel_acc'
-  #- 'ngsim.visualise_measurements'
-  - 'self.overwrite_data(source = "track")'
-  - 'ngsim.estimate_lane_markings' 
-  - 'ngsim.update_lane_ids'
-  - 'self.overwrite_data(source = "track")'
-  - 'ngsim.calc_svs'
-  - 'self.overwrite_data(source = "frame")'
-  - 'ngsim.convert_units'
-  - 'self.overwrite_data(source = "df")'
   - 'self.export_data()'
   #- 'self.import_processed_data()'
-  #- 'ngsim.visualise_tracks'
-  - 'self.export_statics_metas()'
+  #- 'exid.hdmaps2lane_markings'
 meta_data:
-  lane_markings: [[],[],[],[],[],[]]
+  lanelet2_file_dir: '../../Dataset/exiD-dataset-v2.0/maps/lanelet2/2_aachen_brand.osm'
+  lane_markings_yml_dir:  '../../Dataset/exiD-dataset-v2.0/maps/!lane_markings/2_aachen_brand.yaml'
 # These are the columns essential for conversion: frame, id, x,y (in any coordinates/units)
 essential_columns:
-  FRAME: "Frame_ID"
-  TRACK_ID: "Vehicle_ID"
-  X: 'Local_Y'
-  Y: 'Local_X'
+  FRAME: "frame"
+  TRACK_ID: "trackId"
+  X: 'xCenter'
+  Y: 'yCenter'
 # Match new dataset columns to highD columns in use for prediction model. None if there is no matchig
 matched_columns:
-  X_VELOCITY: None
-  Y_VELOCITY: None
-  X_ACCELERATION: None 
-  Y_ACCELERATION: None
-  WIDTH: 'v_Length'
-  HEIGHT: 'v_Width'
+  X_VELOCITY: lonVelocity
+  Y_VELOCITY: latVelocity
+  X_ACCELERATION: lonAcceleration 
+  Y_ACCELERATION: latAcceleration
+  WIDTH: 'length'
+  HEIGHT: 'width'
   PRECEDING_ID: None
   FOLLOWING_ID: None
   LEFT_PRECEDING_ID: None
@@ -53,4 +41,4 @@ matched_columns:
   RIGHT_PRECEDING_ID: None
   RIGHT_ALONGSIDE_ID: None
   RIGHT_FOLLOWING_ID: None
-  LANE_ID: 'Lane_ID'
+  LANE_ID: 'None'

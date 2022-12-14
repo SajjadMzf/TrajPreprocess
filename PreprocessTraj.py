@@ -9,7 +9,8 @@ import params as p
 from utils.data_frame_functions import group_df, group2df
 import utils.coordinate_functions as cf
 from time import time
-import ngsim
+import ngsim, exid
+import argparse
 # From ID,Frame,X,Y to xVelocity, yVelocity, xAcceleration, yAcceleration, SVs_ID
 class PreprocessTraj():
     def __init__(self, configs_file, constants_file):
@@ -18,7 +19,13 @@ class PreprocessTraj():
         with open(constants_file) as f:
             self.constants = yaml.load(f, Loader = yaml.FullLoader)
              
-        self.data_files = self.configs['dataset']['filenames']
+        if 'filenames' in self.configs['dataset']:
+            self.data_files = self.configs['dataset']['filenames']
+        else:
+            self.data_files = []
+            string_format = self.configs['dataset']['filestring']
+            for i in eval(self.configs['dataset']['fileranges']):
+                self.data_files.append(string_format.format(str(i).zfill(2)))
         self.frame_dirs = []
         self.track_dirs = []
         self.df_dirs = []
@@ -86,12 +93,13 @@ class PreprocessTraj():
         function_list = [func for  func in self.configs['ordered_preprocess_functions']]
         for func_itr, func_str in enumerate(function_list):
             
-            for itr, df_data in enumerate(self.df_data_list):
-                print('{}.{}. {} of file {}'.format(func_itr+1,itr+1, func_str.split('.')[1].split('(')[0],self.data_files[itr]))
-                start = time()
-                if 'self.' in func_str:
-                    eval(func_str)
-                else:
+            if 'self.' in func_str:
+                eval(func_str)
+            else:
+                for itr, df_data in enumerate(self.df_data_list):
+                    print('{}.{}. {} of file {}'.format(func_itr+1,itr+1, func_str.split('.')[1].split('(')[0],self.data_files[itr]))
+                    start = time()
+                    
                     res_df = eval(func_str)(self.configs,itr, df_data, self.track_data_list[itr], self.frame_data_list[itr])
                     if res_df['df'] is not None:
                         self.df_data_list[itr] = res_df['df']
@@ -101,8 +109,8 @@ class PreprocessTraj():
                         self.frame_data_list[itr] = res_df['frames_data']
                     if res_df['configs'] is not None:
                         self.configs = res_df['configs']
-                print('In {} sec'.format(time()-start))
-    
+                    print('In {} sec'.format(time()-start))
+        
     def export_statics_metas(self):
         for file_itr, file_name in enumerate(self.data_files):
             meta_data = [-1]*len(p.metas_columns)
@@ -225,8 +233,12 @@ class PreprocessTraj():
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('config_file', type=str)
+    args = parser.parse_args()
+
     ngsim_preprocess = PreprocessTraj(
-        'configs/ngsim_preprocess.yaml',
+        args.config_file,
         'configs/constants.yaml'
     )
     ngsim_preprocess.dataset_specific_preprocess()
