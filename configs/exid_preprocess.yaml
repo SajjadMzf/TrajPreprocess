@@ -1,0 +1,56 @@
+dataset:
+  name: 'exid'
+  import_dir: '../../Dataset/exid/Raws'
+  export_dir: '../../Dataset/NGSIM/'
+  filenames: ['01.csv','02.csv','03.csv','04.csv','05.csv','06.csv']
+  us101: [False, False, False, True, True, True]
+  fps: 10
+visualisation:
+  image_width: 600 #in meters
+  image_height: 100
+  x_bias: 10
+  y_bias: 3
+ordered_preprocess_functions:
+  
+  - 'ngsim.relocate_tracking_point' 
+  - 'self.overwrite_data(source = "df")'
+  - 'ngsim.traj_smoothing'
+  - 'ngsim.calc_vel_acc'
+  #- 'ngsim.visualise_measurements'
+  - 'self.overwrite_data(source = "track")'
+  - 'ngsim.estimate_lane_markings' 
+  - 'ngsim.update_lane_ids'
+  - 'self.overwrite_data(source = "track")'
+  - 'ngsim.calc_svs'
+  - 'self.overwrite_data(source = "frame")'
+  - 'ngsim.convert_units'
+  - 'self.overwrite_data(source = "df")'
+  - 'self.export_data()'
+  #- 'self.import_processed_data()'
+  #- 'ngsim.visualise_tracks'
+  - 'self.export_statics_metas()'
+meta_data:
+  lane_markings: [[],[],[],[],[],[]]
+# These are the columns essential for conversion: frame, id, x,y (in any coordinates/units)
+essential_columns:
+  FRAME: "Frame_ID"
+  TRACK_ID: "Vehicle_ID"
+  X: 'Local_Y'
+  Y: 'Local_X'
+# Match new dataset columns to highD columns in use for prediction model. None if there is no matchig
+matched_columns:
+  X_VELOCITY: None
+  Y_VELOCITY: None
+  X_ACCELERATION: None 
+  Y_ACCELERATION: None
+  WIDTH: 'v_Length'
+  HEIGHT: 'v_Width'
+  PRECEDING_ID: None
+  FOLLOWING_ID: None
+  LEFT_PRECEDING_ID: None
+  LEFT_ALONGSIDE_ID: None
+  LEFT_FOLLOWING_ID: None
+  RIGHT_PRECEDING_ID: None
+  RIGHT_ALONGSIDE_ID: None
+  RIGHT_FOLLOWING_ID: None
+  LANE_ID: 'Lane_ID'
