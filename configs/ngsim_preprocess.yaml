@@ -12,23 +12,23 @@ visualisation:
   y_bias: 3
 ordered_preprocess_functions:
   
-  - 'ngsim.relocate_tracking_point' 
-  - 'self.overwrite_data(source = "df")'
-  - 'ngsim.traj_smoothing'
-  - 'ngsim.calc_vel_acc'
-  #- 'ngsim.visualise_measurements'
-  - 'self.overwrite_data(source = "track")'
-  - 'ngsim.estimate_lane_markings' 
-  - 'ngsim.update_lane_ids'
-  - 'self.overwrite_data(source = "track")'
-  - 'ngsim.calc_svs'
-  - 'self.overwrite_data(source = "frame")'
-  - 'ngsim.convert_units'
-  - 'self.overwrite_data(source = "df")'
-  - 'self.export_data()'
-  #- 'self.import_processed_data()'
-  #- 'ngsim.visualise_tracks'
-  - 'self.export_statics_metas()'
+  - ['ngsim.relocate_tracking_point' , 'single']
+  - ['self.overwrite_data(source = "df")', 'all']
+  - ['ngsim.traj_smoothing', 'single']
+  - ['ngsim.calc_vel_acc', 'single']
+  #- ['ngsim.visualise_measurements', 'single']
+  - ['self.overwrite_data(source = "track")', 'all']
+  - ['ngsim.estimate_lane_markings' , 'single']
+  - ['ngsim.update_lane_ids', 'single']
+  - ['self.overwrite_data(source = "track")', 'all']
+  - ['ngsim.calc_svs', 'single']
+  - ['self.overwrite_data(source = "frame")', 'all']
+  - ['ngsim.convert_units', 'single']
+  - ['self.overwrite_data(source = "df")', 'all']
+  - ['self.export_data()', 'all']
+  #- ['self.import_processed_data()', 'all']
+  #- ['ngsim.visualise_tracks', 'single']
+  - ['self.export_statics_metas()', 'all']
 meta_data:
   lane_markings: [[],[],[],[],[],[]]
 # These are the columns essential for conversion: frame, id, x,y (in any coordinates/units)

@@ -90,12 +90,14 @@ class PreprocessTraj():
         return df_data_list 
 
     def dataset_specific_preprocess(self):
-        function_list = [func for  func in self.configs['ordered_preprocess_functions']]
-        for func_itr, func_str in enumerate(function_list):
-            
-            if 'self.' in func_str:
+        function_list = [func_list for  func_list in self.configs['ordered_preprocess_functions']]
+        for func_itr, func_list in enumerate(function_list):
+            func_str = func_list[0]
+            func_type = func_list[1]
+            if func_type== 'all':
                 eval(func_str)
-            else:
+            elif func_type== 'single':
+                
                 for itr, df_data in enumerate(self.df_data_list):
                     print('{}.{}. {} of file {}'.format(func_itr+1,itr+1, func_str.split('.')[1].split('(')[0],self.data_files[itr]))
                     start = time()
@@ -110,7 +112,9 @@ class PreprocessTraj():
                     if res_df['configs'] is not None:
                         self.configs = res_df['configs']
                     print('In {} sec'.format(time()-start))
-        
+            else:
+                raise(ValueError('Undefined func_type'))
+            
     def export_statics_metas(self):
         for file_itr, file_name in enumerate(self.data_files):
             meta_data = [-1]*len(p.metas_columns)

@@ -12,10 +12,10 @@ visualisation:
   image_height: tbd
   x_bias: 10
   y_bias: 3
-ordered_preprocess_functions:
-  - 'self.export_data()'
-  #- 'self.import_processed_data()'
-  #- 'exid.hdmaps2lane_markings'
+ordered_preprocess_functions: # 'all' means all functions applies to all data file. 'single' means function applies to single data file
+  - ['self.export_data()', 'all']
+  - ['self.import_processed_data()', 'all']
+  - [exid.hdmaps2lane_markings_4all', 'single']
 meta_data:
   lanelet2_file_dir: '../../Dataset/exiD-dataset-v2.0/maps/lanelet2/2_aachen_brand.osm'
   lane_markings_yml_dir:  '../../Dataset/exiD-dataset-v2.0/maps/!lane_markings/2_aachen_brand.yaml'
