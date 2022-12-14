@@ -12,16 +12,16 @@ Similar to *configs/ngsim_preprocess.yaml*, create a config file for the traject
 ## Some included preprocessing functions:
 Following are some pre-implemented preprocessing functions of the framework:
 
-1. Trajectory smoothing using digital filters. (e.g., Savitzky–Golay filter)
-2. Estimating Velocity, and Acceleration from trajectory data.
-3. Estimating lane marking locations (where map data is not available).
-4. Calculating Surrounding Vehicles IDs (e.g., Right/Left Preceding/Alongside/Following vehicles).
-5. Visualising estimated states (e.g. position, velocity, acceleration)
-6. Visualising trajectory data
-7. Importing, exporting, and updating Dataframes, track_groups, and frame_groups.
-8. Exporting statics and metadata in highD format (few columns are populated in the current version).
+- Trajectory smoothing using digital filters. (e.g., Savitzky–Golay filter)
+- Estimating Velocity, and Acceleration from trajectory data.
+- Estimating lane marking locations (where map data is not available).
+- Calculating Surrounding Vehicles IDs (e.g., Right/Left Preceding/Alongside/Following vehicles).
+- Visualising estimated states (e.g. position, velocity, acceleration)
+- Visualising trajectory data
+- Importing, exporting, and updating Dataframes, track_groups, and frame_groups.
+- Exporting statics and metadata in highD format (few columns are populated in the current version).
 
 ## Reference:
-highD dataset format: https://www.highd-dataset.com/format
-NGSIM dataset: https://datahub.transportation.gov/stories/s/i5zb-xe34#trajectory-data
-exiD dataset: https://www.exid-dataset.com/
+1. highD dataset format: https://www.highd-dataset.com/format
+2. NGSIM dataset: https://datahub.transportation.gov/stories/s/i5zb-xe34#trajectory-data
+3. exiD dataset: https://www.exid-dataset.com/
