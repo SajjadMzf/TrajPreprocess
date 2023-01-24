@@ -11,6 +11,7 @@ import utils.coordinate_functions as cf
 from time import time
 import ngsim, exid
 import argparse
+import pdb 
 # From ID,Frame,X,Y to xVelocity, yVelocity, xAcceleration, yAcceleration, SVs_ID
 class PreprocessTraj():
     def __init__(self, configs_file, constants_file):
@@ -54,40 +55,6 @@ class PreprocessTraj():
         self.track_data_list = []
         self.frame_data_list = []
         
-        self.match_columns()
-        self.df_data_list = self.initialise_df()
-        self.overwrite_data(source = 'df')
-
-    def match_columns(self):
-        input_columns2keep = []
-        highd_columns_filled = []
-        self.highd_columns_empty = []
-        for key, value in self.configs['essential_columns'].items():
-            input_columns2keep.append(value)
-            highd_columns_filled.append(eval('p.{}'.format(key)))
-        for key, value in self.configs['matched_columns'].items():
-            if value != 'None':
-                input_columns2keep.append(value)
-                highd_columns_filled.append(eval('p.{}'.format(key)))
-            else:
-                self.highd_columns_empty.append(eval('p.{}'.format(key)))
-        self.input2highd = dict(zip(input_columns2keep, highd_columns_filled))
-        self.highd2input = dict(zip(highd_columns_filled, input_columns2keep))
-
-    def initialise_df(self):
-        df_data_list = []
-        data_files_cdir = [os.path.join(self.configs['dataset']['import_dir'], file_name) for file_name in self.data_files]
-        for file_itr, data_file_cdir in enumerate(data_files_cdir):
-            print('Importing df file: {}.'.format(data_file_cdir))
-            df = pd.read_csv(data_file_cdir)
-            df = df[list(self.highd2input.values())]
-            df = df.rename(columns = self.input2highd)
-            for empty_column in self.highd_columns_empty:
-                df[empty_column] = (np.ones((df.shape[0]))*-1).tolist()
-            df = df.sort_values([p.TRACK_ID, p.FRAME], ascending=  [1,1])
-            df_data_list.append(df) 
-
-        return df_data_list 
 
     def dataset_specific_preprocess(self):
         function_list = [func_list for  func_list in self.configs['ordered_preprocess_functions']]
@@ -95,7 +62,22 @@ class PreprocessTraj():
             func_str = func_list[0]
             func_type = func_list[1]
             if func_type== 'all':
-                eval(func_str)
+                if ('(' in func_str) and (')' in func_str):
+                    eval(func_str)
+                else:
+                    print('{}. {} of all files'.format(func_itr+1, func_str.split('.')[1].split('(')[0]))
+                    start = time()
+                    res_df = eval(func_str)(self.configs,None, self.df_data_list, self.track_data_list, self.frame_data_list)
+                    if res_df['df'] is not None:
+                        self.df_data_list = res_df['df']
+                    if res_df['tracks_data'] is not None:
+                        self.track_data_list = res_df['tracks_data']
+                    if res_df['frames_data'] is not None:
+                        self.frame_data_list = res_df['frames_data']
+                    if res_df['configs'] is not None:
+                        self.configs = res_df['configs']
+                    print('In {} sec'.format(time()-start))
+
             elif func_type== 'single':
                 
                 for itr, df_data in enumerate(self.df_data_list):
@@ -114,7 +96,38 @@ class PreprocessTraj():
                     print('In {} sec'.format(time()-start))
             else:
                 raise(ValueError('Undefined func_type'))
-            
+
+
+    def match_columns(self):
+            input_columns2keep = []
+            highd_columns_filled = []
+            self.highd_columns_empty = []
+            for key, value in self.configs['essential_columns'].items():
+                input_columns2keep.append(value)
+                highd_columns_filled.append(eval('p.{}'.format(key)))
+            for key, value in self.configs['matched_columns'].items():
+                if value != 'None':
+                    input_columns2keep.append(value)
+                    highd_columns_filled.append(eval('p.{}'.format(key)))
+                else:
+                    self.highd_columns_empty.append(eval('p.{}'.format(key)))
+            self.input2highd = dict(zip(input_columns2keep, highd_columns_filled))
+            self.highd2input = dict(zip(highd_columns_filled, input_columns2keep))
+
+    def initialise_df(self):
+        self.df_data_list = []
+        data_files_cdir = [os.path.join(self.configs['dataset']['import_dir'], file_name) for file_name in self.data_files]
+        for file_itr, data_file_cdir in enumerate(data_files_cdir):
+            print('Importing df file: {}.'.format(data_file_cdir))
+            df = pd.read_csv(data_file_cdir)
+            df = df[list(self.highd2input.values())]
+            df = df.rename(columns = self.input2highd)
+            for empty_column in self.highd_columns_empty:
+                df[empty_column] = (np.ones((df.shape[0]))*-1).tolist()
+            df = df.sort_values([p.TRACK_ID, p.FRAME], ascending=  [1,1])
+            self.df_data_list.append(df) 
+
+
     def export_statics_metas(self):
         for file_itr, file_name in enumerate(self.data_files):
             meta_data = [-1]*len(p.metas_columns)
@@ -241,11 +254,11 @@ if __name__ == '__main__':
     parser.add_argument('config_file', type=str)
     args = parser.parse_args()
 
-    ngsim_preprocess = PreprocessTraj(
+    preprocess = PreprocessTraj(
         args.config_file,
         'configs/constants.yaml'
     )
-    ngsim_preprocess.dataset_specific_preprocess()
+    preprocess.dataset_specific_preprocess()
     # TODO: default value for non-existance of SV is 0 not -1
     # TODO: update traj filtering
     # TODO: there is a bug in rav and lav when two vehicles are along TV

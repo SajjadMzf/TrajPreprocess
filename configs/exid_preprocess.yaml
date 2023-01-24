@@ -4,7 +4,7 @@ dataset:
   import_dir: '../../Dataset/exiD-dataset-v2.0/data'
   export_dir: '../../Dataset/exid/'
   # in dataset with large number of data files, we use fileranges and filestring
-  fileranges: range(39,53)
+  fileranges: range(39,40) #range(39,53)
   filestring: "{}_tracks.csv"
   fps: 25
 visualisation:
@@ -13,9 +13,14 @@ visualisation:
   x_bias: 10
   y_bias: 3
 ordered_preprocess_functions: # 'all' means all functions applies to all data file. 'single' means function applies to single data file
-  - ['self.export_data()', 'all']
+  #['self.match_columns()', 'all']
+  #['self.initialise_df()', 'all']
+  #['self.overwrite_data(source = 'df')', 'all']
+  #- ['self.export_data()', 'all']
   - ['self.import_processed_data()', 'all']
-  - [exid.hdmaps2lane_markings_4all', 'single']
+  - ['exid.hdmaps2lane_markings', 'single']
+  #convert lm to local coord
+  #convert to frenet coord
 meta_data:
   lanelet2_file_dir: '../../Dataset/exiD-dataset-v2.0/maps/lanelet2/2_aachen_brand.osm'
   lane_markings_yml_dir:  '../../Dataset/exiD-dataset-v2.0/maps/!lane_markings/2_aachen_brand.yaml'
