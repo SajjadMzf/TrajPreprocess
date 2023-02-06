@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib import gridspec
 import os, shutil
 import cv2
-
+import pdb
 def relocate_tracking_point(configs,itr, df_data, tracks_data = None, frames_data = None):
     df_data[p.X] = df_data[p.X]- df_data[p.WIDTH]/2
     return {'configs': None, 'df': df_data, 'tracks_data': None,'frames_data': None}
@@ -147,7 +147,7 @@ def update_lane_ids(configs,df_itr,  df_data, tracks_data, frames_data):
     return {'configs': None, 'df': None, 'tracks_data': tracks_data,'frames_data': None}
 
 def calc_svs(configs, df_itr,  df_data, tracks_data, frames_data):
-       
+    pdb.set_trace()   
     for frame_itr, frame_data in enumerate(frames_data):
         for track_itr, track_id in enumerate(frame_data[p.TRACK_ID]):
             lane_id = frame_data[p.LANE_ID][frame_data[p.TRACK_ID] == track_id]

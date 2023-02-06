@@ -15,6 +15,7 @@ import pdb
 # From ID,Frame,X,Y to xVelocity, yVelocity, xAcceleration, yAcceleration, SVs_ID
 class PreprocessTraj():
     def __init__(self, configs_file, constants_file):
+        
         with open(configs_file) as f:
             self.configs = yaml.load(f, Loader = yaml.SafeLoader)
         with open(constants_file) as f:
@@ -31,6 +32,7 @@ class PreprocessTraj():
         self.track_dirs = []
         self.df_dirs = []
         
+        # handle dirs
         frame_dir = os.path.join(self.configs['dataset']['export_dir'], p.FRAME_SAVE_DIR)
         if os.path.exists(frame_dir) == False:
             os.makedirs(frame_dir)
@@ -78,7 +80,7 @@ class PreprocessTraj():
                         self.configs = res_df['configs']
                     print('In {} sec'.format(time()-start))
 
-            elif func_type== 'single':
+            elif func_type== 'one':
                 
                 for itr, df_data in enumerate(self.df_data_list):
                     print('{}.{}. {} of file {}'.format(func_itr+1,itr+1, func_str.split('.')[1].split('(')[0],self.data_files[itr]))
@@ -99,20 +101,20 @@ class PreprocessTraj():
 
 
     def match_columns(self):
-            input_columns2keep = []
-            highd_columns_filled = []
-            self.highd_columns_empty = []
-            for key, value in self.configs['essential_columns'].items():
-                input_columns2keep.append(value)
-                highd_columns_filled.append(eval('p.{}'.format(key)))
+            matched_input_columns = []
+            matched_output_columns = []
+            unmatched_input_columns = self.configs['unmatched_columns']
+            self.unmatched_output_columns = []
             for key, value in self.configs['matched_columns'].items():
                 if value != 'None':
-                    input_columns2keep.append(value)
-                    highd_columns_filled.append(eval('p.{}'.format(key)))
+                    matched_input_columns.append(value)
+                    matched_output_columns.append(eval('p.{}'.format(key)))
                 else:
-                    self.highd_columns_empty.append(eval('p.{}'.format(key)))
-            self.input2highd = dict(zip(input_columns2keep, highd_columns_filled))
-            self.highd2input = dict(zip(highd_columns_filled, input_columns2keep))
+                    self.unmatched_output_columns.append(eval('p.{}'.format(key)))
+            matched_input_columns.extend(unmatched_input_columns)
+            matched_output_columns.extend(unmatched_input_columns)
+            self.input2output = dict(zip(matched_input_columns, matched_output_columns))
+            self.output2input = dict(zip(matched_output_columns, matched_input_columns))
 
     def initialise_df(self):
         self.df_data_list = []
@@ -120,9 +122,9 @@ class PreprocessTraj():
         for file_itr, data_file_cdir in enumerate(data_files_cdir):
             print('Importing df file: {}.'.format(data_file_cdir))
             df = pd.read_csv(data_file_cdir)
-            df = df[list(self.highd2input.values())]
-            df = df.rename(columns = self.input2highd)
-            for empty_column in self.highd_columns_empty:
+            df = df[list(self.output2input.values())]
+            df = df.rename(columns = self.input2output)
+            for empty_column in self.unmatched_output_columns:
                 df[empty_column] = (np.ones((df.shape[0]))*-1).tolist()
             df = df.sort_values([p.TRACK_ID, p.FRAME], ascending=  [1,1])
             self.df_data_list.append(df) 
@@ -250,15 +252,16 @@ class PreprocessTraj():
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('config_file', type=str)
-    args = parser.parse_args()
+    #parser = argparse.ArgumentParser()
+    #parser.add_argument('config_file', type=str)
+    #args = parser.parse_args()
 
     preprocess = PreprocessTraj(
-        args.config_file,
+        #args.config_file,
+        'configs/exid_preprocess.yaml',
         'configs/constants.yaml'
     )
     preprocess.dataset_specific_preprocess()
-    # TODO: default value for non-existance of SV is 0 not -1
+    
     # TODO: update traj filtering
-    # TODO: there is a bug in rav and lav when two vehicles are along TV
+    # TODO tracks_tracks!

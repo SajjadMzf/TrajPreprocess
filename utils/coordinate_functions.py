@@ -12,28 +12,36 @@ def cart2frenet(traj, ref):
     traj = np array of size [T,2]
     ref = np array of size [L,2]
     '''
-    #print('CART2FRENET')
+    #print('CART2FRENET') TODO: 1. extend gamma 2. test with crossing traj and ref
     L = ref.shape[0]
     T = traj.shape[0]
-    gamma = np.zeros((L))
-    for i in range(L-1):
-        gamma[i] = norm(ref[i+1]-ref[i])
-    gamma[L-1] = gamma[L-2]
+    gamma = np.zeros((L)) 
+    for i in range(1, L):
+        gamma[i] = norm(ref[i]-ref[i-1])
     gamma = np.cumsum(gamma)
     ref_frenet = np.zeros((L, 2))
     ref_frenet[:,0] = gamma
     traj_frenet = np.zeros((T, 2))
     for i in range(T):
-        min2itr = np.argpartition(norm(ref-traj[i], axis=1), 3)[0:2]
-        it = np.min(min2itr)
-        it1 = np.max(min2itr)
-        traj_frenet[i,0] =  gamma[it] + norm(np.dot(ref[it1]-ref[it], ref[it]-traj[i]))/norm(ref[it1]-ref[it])
-        traj_frenet[i,1] = norm(np.cross(ref[it1]-ref[it], ref[it]-traj[i]))/norm(ref[it1]-ref[it])
+        traj2ref_dist = norm(ref-traj[i], axis=1)
+        
+        itr = np.argmin(traj2ref_dist)
+        if traj2ref_dist[itr] == 0:
+            if itr==0:
+                traj_frenet[i] = 0 
+                continue   
+            else:
+                itr -=1
+        if itr+1 >= L:
+            itr -=1 
+
+        traj_frenet[i,0] =  gamma[itr] + np.dot(ref[itr+1]-ref[itr], traj[i]-ref[itr])/norm(ref[itr+1]-ref[itr])
+        traj_frenet[i,1] = np.cross(ref[itr+1] - ref[itr], traj[i] - ref[itr])/norm(ref[itr+1]-ref[itr])
         #print('it:{}, it1:{}'.format(it,it1))
-    return traj_frenet, ref_frenet
+    return traj_frenet
 
 
-def frenet2cart( traj, ref): #assumption: traj y>ref y , ref is in cart coordinate equally it means thetha>0
+def frenet2cart( traj, ref): #TODO: needs update based on cart2frenet #assumption: traj y>ref y , ref is in cart coordinate equally it means thetha>0
         #print('FRENET2CART')
         epsilon=sys.float_info.epsilon
         L = ref.shape[0]
@@ -45,6 +53,7 @@ def frenet2cart( traj, ref): #assumption: traj y>ref y , ref is in cart coordina
         gamma[L-1] = gamma[L-2]
         gamma = np.cumsum(gamma)
         traj_cart = np.zeros((T,2))
+        #assert(np.any(gamma>traj))
         for i in range(T):
             it2 = np.nonzero(gamma>traj[i,0])[0][0]
             it1 = it2-1
@@ -72,15 +81,23 @@ def frenet2cart( traj, ref): #assumption: traj y>ref y , ref is in cart coordina
 def asRadians(degrees):
     return degrees * math.pi / 180
 
-def longlat2xy(data_coordinates, null_coordinates):
+def longlat2xy(data_coordinates, origin_coordinates):
     """ Calculates X and Y distances in meters.
     """
-    (data_long, data_lat) = data_coordinates
-    (null_long, null_lat) = null_coordinates
-    deltaLatitude = data_lat - null_lat
-    deltaLongitude = data_long - null_long
-    latitudeCircumference = 40075160 * math.cos(asRadians(null_lat))
+    
+    long_array = data_coordinates[:,0]
+    lat_array = data_coordinates[:,1]
+    #(data_long, data_lat) = data_coordinates
+    (long_origin, lat_origin) = origin_coordinates
+    deltaLatitude = lat_array - lat_origin
+    deltaLongitude = long_array - long_origin
+    latitudeCircumference = 40075160 * math.cos(asRadians(lat_origin))
     resultX = deltaLongitude * latitudeCircumference / 360
     resultY = deltaLatitude * 40008000 / 360
-    
-    return (resultX, resultY) 
+    xy = np.stack((resultX, resultY),axis = 1)
+    return xy 
+
+def point2lane_dist(p, l1,l2):
+    x = p-l1
+    y = l2-l1
+    return np.abs(np.cross(x,y)/np.linalg.norm(y))

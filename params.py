@@ -1,10 +1,11 @@
 
 
 
+VISUALISE_FRENET = True
 #Visualisation parameters:
-VISUALISATION_COUNT = 5
-X_SCALE = 4
-Y_SCALE = 4
+VISUALISATION_COUNT = 10
+X_SCALE = 10
+Y_SCALE = 10
 FONT_SCALE = 0.25
 
 measurement_dir = 'visualisations/measurements'
@@ -47,6 +48,19 @@ RIGHT_PRECEDING_ID = "rightPrecedingId"
 RIGHT_ALONGSIDE_ID = "rightAlongsideId"
 RIGHT_FOLLOWING_ID = "rightFollowingId"
 LANE_ID = "laneId"
+LANE_WIDTH = 'laneWidth'
+DRIVING_DIR = 'drivingDir'
+RV_IDs = [
+    RIGHT_FOLLOWING_ID,
+    RIGHT_ALONGSIDE_ID,
+    RIGHT_PRECEDING_ID
+]
+LV_IDs = [
+    LEFT_FOLLOWING_ID,
+    LEFT_ALONGSIDE_ID,
+    LEFT_PRECEDING_ID
+]
+
 SV_IDs = [
         PRECEDING_ID, 
         FOLLOWING_ID,
