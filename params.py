@@ -3,7 +3,7 @@
 
 VISUALISE_FRENET = True
 #Visualisation parameters:
-VISUALISATION_COUNT = 10
+VISUALISATION_COUNT = 1
 X_SCALE = 10
 Y_SCALE = 10
 FONT_SCALE = 0.25
@@ -27,6 +27,7 @@ LINE_THICKNESS = 1
 # Statics
 #DRIVING_DIRECTION = "drivingDirection"
 # Tracking
+Y2LANE = 'y2lane'
 FRAME = "frame"
 TRACK_ID = "id"
 X = "x"

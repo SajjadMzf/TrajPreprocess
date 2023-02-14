@@ -60,7 +60,7 @@ def calc_svs(configs, df_itr,  df_data, tracks_data, frames_data):
 
 
 def visualise_tracks(configs,df_itr, df_data, tracks_data = None, frames_data = None):
-    with open(configs['meta_data']['lane_markings_export_file'], 'rb') as handle:
+    with open(configs['dataset']['map_export_dir'], 'rb') as handle:
         lane_marking_dict = pickle.load(handle)
     if p.VISUALISE_FRENET == False:
         lanes = lane_marking_dict['lane_nodes']
@@ -149,48 +149,57 @@ def visualise_tracks(configs,df_itr, df_data, tracks_data = None, frames_data = 
     
     #cv2.imwrite(os.path.join(tracks_dir, 'lanes.png'), background_image)
     #pdb.set_trace()
+    #with open(configs['dataset']['map_export_dir'], 'wb') as handle:
+    #     pickle.dump(lane_marking_dict, handle)
     return {'configs': None, 'df': None, 'tracks_data': None,'frames_data': None}
 
-def get_lane_ids(configs,df_itr, df_data, tracks_data = None, frames_data = None):
-    # compute p.LANE_ID, p.LANE_WIDTH, p.DRIVING_DIR
-    with open(configs['meta_data']['lane_markings_export_file'], 'rb') as handle:
+def get_lane_ids(configs, df_itr, df_data, tracks_data = None, frames_data = None):
+    # compute p.LANE_ID, p.LANE_WIDTH, p.Y2LANE
+    with open(configs['dataset']['map_export_dir'], 'rb') as handle:
         lane_marking_dict = pickle.load(handle)
     lanes = lane_marking_dict['lane_nodes_frenet']
     ids2remove = []
     n_violation = 0
     for id, track_data in enumerate(tracks_data):
+        
         lane_id = np.ones((len(track_data[p.X])))*-1
         lane_width = np.ones((len(track_data[p.X])))*-1
+        y2lane = np.zeros((len(track_data[p.X])))
+        
         for fr in range(len(track_data[p.X])):
             x = track_data[p.X][fr]
             y = track_data[p.Y][fr]
-            l_pos_y = []
-            l_pos = []
+            
+            # find the itr of closest longitudinal position to the vehicle for each lane.
+            l_closest_y = []
+            l_closest_itr = []
             for lane_itr, lane in enumerate(lanes):
-                l_pos.append(np.argmin(np.abs(lane['l'][:,0]-x)))
-                pos_y = lane['l'][l_pos[-1],1]
-                l_pos_y.append(pos_y)
-            l_pos_y = np.array(l_pos_y)
-            if np.any(l_pos_y>y) == False:
-                #print('Warning: out of lane boundary data, y:{}, lane_y:{}'.format(y, max(l_pos_y)))
-                cur_lane_id = len(l_pos_y)+2 # This represents vehicles driving in other direction
+                l_closest_itr.append(np.argmin(np.abs(lane['l'][:,0]-x)))
+                pos_y = lane['l'][l_closest_itr[-1],1]
+                l_closest_y.append(pos_y)
+            l_closest_y = np.array(l_closest_y)
+            
+            if np.any(y>l_closest_y) == False: 
+                cur_lane_id =  len(lanes) #merge lane
             else:
-                cur_lane_id = np.nonzero(l_pos_y>y)[0][0]+1
+                cur_lane_id = np.nonzero(y>l_closest_y)[0][0]
                 
-                assert(len(lane['r'])>l_pos[cur_lane_id-1])
-                lane_width[fr] = l_pos_y[cur_lane_id-1] - lane['r'][l_pos[cur_lane_id-1],1]
-            lane_id[fr] = len(l_pos_y)+2 - cur_lane_id
+            if cur_lane_id>0:
+                lane_width[fr] = abs(l_closest_y[cur_lane_id-1] - lanes[cur_lane_id-1]['r'][l_closest_itr[cur_lane_id-1],1])
+                y2lane[fr] = abs(y-l_closest_y[cur_lane_id-1])
+            lane_id[fr] = cur_lane_id
         
         n_lane_violation = np.sum(lane_id==0)
         if n_lane_violation>0 and n_lane_violation<len(lane_id):
             n_violation +=1
-            print('Warning: Out of lane boundary data, Track:{}, N:{}/{}'.format(id, n_lane_violation, len(lane_id)))
+            print('Warning: Track goes out of road boundries for some frames, Track:{}, N:{}/{}'.format(id, n_lane_violation, len(lane_id)))
         
-        if np.all(lane_id==0):
+        if np.all(lane_id==0): # driving in opposite direction
             ids2remove.append(id)
         else:
             tracks_data[id][p.LANE_ID] = lane_id
             tracks_data[id][p.LANE_WIDTH] = lane_width
+            tracks_data[id][p.Y2LANE] = y2lane 
     # Vehicles driving in the other direction
     print('N Violation : {}'.format(n_violation))
     print('Deleting {}/{} tracks (other driving direction)'.format(len(ids2remove), len(tracks_data)))
@@ -201,11 +210,10 @@ def get_lane_ids(configs,df_itr, df_data, tracks_data = None, frames_data = None
 
 def convert2frenet(configs,df_itr, df_data, tracks_data = None, frames_data = None):
     # compute p.X p.Y
-    with open(configs['meta_data']['lane_markings_export_file'], 'rb') as handle:
+    with open(configs['dataset']['map_export_dir'], 'rb') as handle:
         lane_marking_dict = pickle.load(handle)
     merge_frenet_origin = lane_marking_dict['merge_origin_lane']
     main_frenet_origin = lane_marking_dict['main_origin_lane']
-    #pdb.set_trace()
     merge_s_bias = lane_marking_dict['merge2main_s_bias']
     for id, track_data in enumerate(tracks_data):
         traj = np.stack((track_data['xCenter'], track_data['yCenter']), axis = 1)
@@ -232,19 +240,19 @@ def convert2frenet(configs,df_itr, df_data, tracks_data = None, frames_data = No
 
 
 def hdmaps2lane_markings(configs,df_itr, df_data, tracks_data = None, frames_data = None):
-    ll2p_yml_dir = configs['meta_data']['lane_markings_yml_dir']
+    ll2p_yml_dir = configs['dataset']['lane_markings_yml_dir'] # lane markings ways extracted from lanelet2 and their types
     with open(ll2p_yml_dir) as f:
-            lm_nodes = yaml.load(f, Loader = yaml.SafeLoader)
+            lm_ways = yaml.load(f, Loader = yaml.SafeLoader)
     lanes_ways = []
-    for key in lm_nodes:
+    for key in lm_ways:
         lane = {}
-        lane['r'] = lm_nodes[key]['right']
-        lane['l'] = lm_nodes[key]['left']
-        lane['rt'] = lm_nodes[key]['right_type']
-        lane['lt'] = lm_nodes[key]['left_type']
+        lane['r'] = lm_ways[key]['right']
+        lane['l'] = lm_ways[key]['left']
+        lane['rt'] = lm_ways[key]['right_type']
+        lane['lt'] = lm_ways[key]['left_type']
         lanes_ways.append(lane)
         
-    ll2p_file_dir = configs['meta_data']['lanelet2_file_dir']
+    ll2p_file_dir = configs['dataset']['lanelet2_file_dir'] #original map data in lanelet2 format
     xml_tree = ET.parse(ll2p_file_dir)
     root = xml_tree.getroot()
     nodes = {}
@@ -260,8 +268,8 @@ def hdmaps2lane_markings(configs,df_itr, df_data, tracks_data = None, frames_dat
             ways[child.attrib['id']] = way_nodes
     lanes_nodes = []
     lanes_nodes_types = []
-    #longlat_origin = (configs['dataset']['lonOrigin'], configs['dataset']['latOrigin'])
-    lonlat2utm = Proj("+proj=utm +zone=32U, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs")
+    utmZone = configs['dataset']['UTMZone']
+    lonlat2utm = Proj("+proj=utm +zone={}, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs".format(utmZone))
     utmXorig = configs['dataset']['xUtmOrigin']
     utmYorig = configs['dataset']['yUtmOrigin']  
     
@@ -319,13 +327,12 @@ def hdmaps2lane_markings(configs,df_itr, df_data, tracks_data = None, frames_dat
         lanes_nodes.append(lane_nodes)
         lanes_nodes_types.append(lane_nodes_types)
     
+    # lanes_nodes=>  array of dict, each dict is the nodes of right and left lane marking of lane i in array.
     n_lanes = len(lanes_nodes)
     
-    for itr in range(n_lanes):
-        if np.any(lanes_nodes_types[itr]['l'] == 2):
-            merge_frenet_lm = lanes_nodes[itr]['l']
-        elif np.any(lanes_nodes_types[itr]['r'] == 3):
-            main_frenet_lm = lanes_nodes[itr]['r']
+    merge_frenet_lm = lanes_nodes[-1]['l'] # -2 is index of low-speed main road
+    main_frenet_lm = lanes_nodes[-2]['r'] # -1 is index of merging lane
+    
     merge2main_node = merge_frenet_lm[-1]
     merge2main_itr = np.nonzero(main_frenet_lm==merge2main_node)[0]
     assert(np.all(merge2main_itr == merge2main_itr[0]))
@@ -333,38 +340,37 @@ def hdmaps2lane_markings(configs,df_itr, df_data, tracks_data = None, frames_dat
     lanes_nodes_frenet = []
     main_matched_point_s = cf.cart2frenet(main_frenet_lm, main_frenet_lm)[merge2main_itr,0]
 
-    for itr, lane_nodes in enumerate(lanes_nodes):
-        lane_nodes_frenet = {}
-        if np.any(lanes_nodes_types[itr]['l'] == 2):
-            l_nodes_frenet = cf.cart2frenet(lane_nodes['l'], merge_frenet_lm)
-            r_nodes_frenet = cf.cart2frenet(lane_nodes['r'], merge_frenet_lm)
-            merging_matched_point_s = l_nodes_frenet[-1,0]
-            l_nodes_frenet[:,0] += main_matched_point_s - merging_matched_point_s
-            r_nodes_frenet[:,0] += main_matched_point_s - merging_matched_point_s
-        else:
-            l_nodes_frenet = cf.cart2frenet(lane_nodes['l'], main_frenet_lm)
-            r_nodes_frenet = cf.cart2frenet(lane_nodes['r'], main_frenet_lm)
         
-
+    # convert 2 frenet
+    for itr, lane_nodes in enumerate(lanes_nodes):
+        if itr == (len(lanes_nodes)-1):
+            break
+        lane_nodes_frenet = {}
+        l_nodes_frenet = cf.cart2frenet(lane_nodes['l'], main_frenet_lm)
+        r_nodes_frenet = cf.cart2frenet(lane_nodes['r'], main_frenet_lm)
+    
         lane_nodes_frenet['r'] = r_nodes_frenet
         lane_nodes_frenet['l'] = l_nodes_frenet
         lanes_nodes_frenet.append(lane_nodes_frenet)
 
-    '''
-    lane_width_var = []
-    for itr, lane_nodes_f in enumerate(lanes_nodes_frenet):
-        r_var = np.max(lane_nodes_f['r'][:,1])- np.min(lane_nodes_f['r'][:,1])
-        l_var = np.max(lane_nodes_f['l'][:,1])- np.min(lane_nodes_f['l'][:,1])
-        lane_width_var.append(r_var)
-        lane_width_var.append(l_var)
-    
-    lane_width_var = np.array(lane_width_var)
-    print(lane_width_var)
-    m = cf.cart2frenet(main_frenet_origin, main_frenet_origin)
-    print(np.max(m[:,1])-np.min(m[:,1]))
-    assert(max(lane_width_var<0.5))
-    pdb.set_trace()
-    '''
+    lane_nodes_frenet = {}
+    lane_nodes = lanes_nodes[-1]
+    l_nodes_frenet = cf.cart2frenet(lane_nodes['l'], merge_frenet_lm)
+    r_nodes_frenet = cf.cart2frenet(lane_nodes['r'], merge_frenet_lm)
+    merging_matched_point_s = l_nodes_frenet[-1,0]
+    l_nodes_frenet[:,0] += main_matched_point_s - merging_matched_point_s
+    r_nodes_frenet[:,0] += main_matched_point_s - merging_matched_point_s
+    lane_nodes_frenet['r'] = r_nodes_frenet
+    lane_nodes_frenet['l'] = l_nodes_frenet
+    lanes_nodes_frenet.append(lane_nodes_frenet)
+
+    # transform lane markigns in frenet to image coordinate (top left of image is the origin with y axis direction down and x axis direction to right)
+    # assumption: driving dir = 2
+    # assumption lane r x is not less/greater than lane l x
+    #lane_y_max = max([max(lane['l'][:,1]) for lane in lane_nodes_frenet])
+    #lane_y_min = min([min(lane['r'][:,1]) for lane in lane_nodes_frenet])
+    #lane_x_max = max([max(lane['l'][:,0]) for lane in lane_nodes_frenet])
+    #lane_x_min = min([min(lane['l'][:,0]) for lane in lane_nodes_frenet])
     # interpolate lane markings
     for itr, lane_nodes_f in enumerate(lanes_nodes_frenet):
         s = lane_nodes_f['r'][:,0]
@@ -382,16 +388,26 @@ def hdmaps2lane_markings(configs,df_itr, df_data, tracks_data = None, frames_dat
         new_d = interpolate_fn(new_s)
         new_traj = np.stack((new_s, new_d), axis = 1)
         lanes_nodes_frenet[itr]['l'] = new_traj
+    
 
+    lane_y_max = max([max(lane['l'][:,1]) for lane in lanes_nodes_frenet])
+    lane_y_min = min([min(lane['l'][:,1]) for lane in lanes_nodes_frenet])
+    lane_x_max = max([max(lane['l'][:,0]) for lane in lanes_nodes_frenet])
+    lane_x_min = min([min(lane['l'][:,0]) for lane in lanes_nodes_frenet])
+    image_width = lane_x_max - lane_x_min
+    image_height = lane_y_max- lane_y_min
     #print(lane_markings_frenets)
     lane_marking_dict = {}
+    lane_marking_dict['image_width'] = image_width
+    lane_marking_dict['image_height'] = image_height
     lane_marking_dict['lane_types'] = lanes_nodes_types
     lane_marking_dict['lane_nodes'] = lanes_nodes
     lane_marking_dict['lane_nodes_frenet'] = lanes_nodes_frenet
     lane_marking_dict['merge_origin_lane'] = merge_frenet_lm
     lane_marking_dict['main_origin_lane'] = main_frenet_lm
     lane_marking_dict['merge2main_s_bias'] = main_matched_point_s - merging_matched_point_s
-    with open(configs['meta_data']['lane_markings_export_file'], 'wb') as handle:
+    lane_marking_dict['driving_dir'] = 2 #1: right to left in image plane, 2: left to right in image plane    
+    with open(configs['dataset']['map_export_dir'], 'wb') as handle:
         pickle.dump(lane_marking_dict, handle, protocol = pickle.HIGHEST_PROTOCOL)
     
     return {'configs': configs, 'df': None, 'tracks_data': None,'frames_data': None}

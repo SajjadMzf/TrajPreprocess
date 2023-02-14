@@ -26,8 +26,10 @@ class PreprocessTraj():
         else:
             self.data_files = []
             string_format = self.configs['dataset']['filestring']
+            file_ranges = []
             for i in eval(self.configs['dataset']['fileranges']):
-                self.data_files.append(string_format.format(str(i).zfill(2)))
+                file_ranges.append(str(i).zfill(2))
+                self.data_files.append(string_format.format(file_ranges[-1]))
         self.frame_dirs = []
         self.track_dirs = []
         self.df_dirs = []
@@ -42,18 +44,23 @@ class PreprocessTraj():
         df_dir = os.path.join(self.configs['dataset']['export_dir'], p.DF_SAVE_DIR)
         if os.path.exists(df_dir) == False:
             os.makedirs(df_dir)
-        
-        for data_file in self.data_files:
-            frame_file = ''.join(data_file.split('.')[0:-1])+ '_frames.pickle'
+        map_dir = '/'.join(self.configs['dataset']['map_export_dir'].split('/')[:-1])
+        if os.path.exists(map_dir) == False:
+            os.makedirs(map_dir)
+
+        for i ,data_file in enumerate(self.data_files):
+            if 'filenames' in self.configs['dataset']:
+                frame_file = ''.join(data_file.split('.')[0:-1])+ '_frames.pickle'
+                track_file = ''.join(data_file.split('.')[0:-1])+ '_tracks.pickle'
+                df_file = ''.join(data_file.split('.')[0:-1]) + '_tracks.csv'
+            else:
+                frame_file = ''.join(file_ranges[i])+ '_frames.pickle'
+                track_file = ''.join(file_ranges[i])+ '_tracks.pickle'
+                df_file = ''.join(file_ranges[i]) + '_tracks.csv'
             self.frame_dirs.append(os.path.join(frame_dir, frame_file))
-            track_file = ''.join(data_file.split('.')[0:-1])+ '_tracks.pickle'
             self.track_dirs.append(os.path.join(track_dir, track_file))
-            #print(self.configs['dataset']['export_dir'])
-            df_file = ''.join(data_file.split('.')[0:-1]) + '_tracks.csv'
             self.df_dirs.append(os.path.join(df_dir, df_file)) 
-            #print(self.df_dirs)
-            #exit()
-        
+            
         self.track_data_list = []
         self.frame_data_list = []
         
@@ -244,12 +251,10 @@ class PreprocessTraj():
                 if target == 'tracks' or target == 'rest':
                     self.track_data_list.append(group_df(self.df_data_list[df_itr],by = p.TRACK_ID))
                 if target == 'frames' or target == 'rest':
-                    self.frame_data_list.append(group_df(self.df_data_list[df_itr], by = p.FRAME))
-                
+                    self.frame_data_list.append(group_df(self.df_data_list[df_itr], by = p.FRAME))    
         else:
             raise(ValueError('Unknown Source'))
       
-
 
 if __name__ == '__main__':
     #parser = argparse.ArgumentParser()
@@ -258,7 +263,7 @@ if __name__ == '__main__':
 
     preprocess = PreprocessTraj(
         #args.config_file,
-        'configs/exid_preprocess.yaml',
+        'configs/exid_preprocess4.yaml',
         'configs/constants.yaml'
     )
     preprocess.dataset_specific_preprocess()
