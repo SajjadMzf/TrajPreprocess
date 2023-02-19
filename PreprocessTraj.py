@@ -263,7 +263,7 @@ if __name__ == '__main__':
 
     preprocess = PreprocessTraj(
         #args.config_file,
-        'configs/exid_preprocess4.yaml',
+        'configs/exid_preprocess6.yaml',
         'configs/constants.yaml'
     )
     preprocess.dataset_specific_preprocess()

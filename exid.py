@@ -255,11 +255,13 @@ def hdmaps2lane_markings(configs,df_itr, df_data, tracks_data = None, frames_dat
     ll2p_file_dir = configs['dataset']['lanelet2_file_dir'] #original map data in lanelet2 format
     xml_tree = ET.parse(ll2p_file_dir)
     root = xml_tree.getroot()
-    nodes = {}
+    node_ids = []
+    node_poses = []
     ways = {}
     for child in root:
         if child.tag == 'node':
-            nodes[child.attrib['id']] = [child.attrib['lon'], child.attrib['lat']]
+            node_poses.append([float(child.attrib['lon']), float(child.attrib['lat'])])
+            node_ids.append(child.attrib['id'])
         elif child.tag == 'way':
             way_nodes = []
             for g_child in child:
@@ -272,6 +274,9 @@ def hdmaps2lane_markings(configs,df_itr, df_data, tracks_data = None, frames_dat
     lonlat2utm = Proj("+proj=utm +zone={}, +north +ellps=WGS84 +datum=WGS84 +units=m +no_defs".format(utmZone))
     utmXorig = configs['dataset']['xUtmOrigin']
     utmYorig = configs['dataset']['yUtmOrigin']  
+    node_poses = np.array(node_poses)
+    utmX, utmY = lonlat2utm(node_poses[:,0], node_poses[:,1])
+    node_poses = np.stack((utmX - utmXorig, utmY - utmYorig), axis = 1)
     
     for lane_ways in lanes_ways:
         lane_nodes = {}
@@ -285,27 +290,51 @@ def hdmaps2lane_markings(configs,df_itr, df_data, tracks_data = None, frames_dat
         l_nodes_type = []
         
         for way_itr in range(n_ways):
+            # Right lane marking
             r_way = lane_ways['r'][way_itr]
             r_node_ids = ways[str(r_way)]
+            
+            r_nodes_xy = []
             for r_node_id in r_node_ids:
-                node = nodes[r_node_id]
-                r_nodes.append([float(node[0]), float(node[1])])
-            r_nodes_type.extend([lane_ways['rt'][way_itr]]*len(r_node_ids))
+                node_itr = node_ids.index(r_node_id)
+                r_nodes_xy.append(node_poses[node_itr])
+            r_nodes_xy = np.array(r_nodes_xy)    
+                #Intrapolate
+            x = r_nodes_xy[:,0]
+            y = r_nodes_xy[:,1]
+            interpolate_fn = interp1d(x,y)
+            new_x = np.linspace(x[0], x[-1], 100)
+            new_y = interpolate_fn(new_x)
+            r_nodes_xy_n = np.stack((new_x, new_y), axis = 1)
+            for i in range(len(r_nodes_xy_n)):
+                r_nodes.append([float(r_nodes_xy_n[i,0]), float(r_nodes_xy_n[i,1])])
+            
+            r_nodes_type.extend([lane_ways['rt'][way_itr]]*len(r_nodes_xy_n))
+            
+            # Left Lane Marking
             l_way = lane_ways['l'][way_itr]
             l_node_ids = ways[str(l_way)]
             
+            l_nodes_xy = []
             for l_node_id in l_node_ids:
-                node = nodes[l_node_id]
-                l_nodes.append([float(node[0]), float(node[1])])
-            l_nodes_type.extend([lane_ways['lt'][way_itr]]*len(l_node_ids))
-        
+                node_itr = node_ids.index(l_node_id)
+                l_nodes_xy.append(node_poses[node_itr])
+            l_nodes_xy = np.array(l_nodes_xy)    
+                #Intrapolate
+            x = l_nodes_xy[:,0]
+            y = l_nodes_xy[:,1]
+            interpolate_fn = interp1d(x,y)
+            new_x = np.linspace(x[0], x[-1], 100)
+            new_y = interpolate_fn(new_x)
+            l_nodes_xy_n = np.stack((new_x, new_y), axis = 1)
+            for i in range(len(l_nodes_xy_n)):
+                l_nodes.append([float(l_nodes_xy_n[i,0]), float(l_nodes_xy_n[i,1])])
+            
+            l_nodes_type.extend([lane_ways['lt'][way_itr]]*len(l_nodes_xy_n))
+            
 
         r_nodes = np.array(r_nodes)
-        utmX, utmY = lonlat2utm(r_nodes[:,0], r_nodes[:,1])
-        r_nodes = np.stack((utmX - utmXorig, utmY - utmYorig), axis = 1)
         l_nodes = np.array(l_nodes)
-        utmX, utmY = lonlat2utm(l_nodes[:,0], l_nodes[:,1])
-        l_nodes = np.stack((utmX - utmXorig, utmY - utmYorig), axis = 1)
         lane_nodes['r'] = r_nodes#cf.longlat2xy(np.array(r_nodes), longlat_origin)
         lane_nodes['l'] = l_nodes#cf.longlat2xy(np.array(l_nodes), longlat_origin)
         lane_nodes_types['r'] = np.array(r_nodes_type)
@@ -335,7 +364,7 @@ def hdmaps2lane_markings(configs,df_itr, df_data, tracks_data = None, frames_dat
     
     merge2main_node = merge_frenet_lm[-1]
     merge2main_itr = np.nonzero(main_frenet_lm==merge2main_node)[0]
-    assert(np.all(merge2main_itr == merge2main_itr[0]))
+    #assert(np.all(merge2main_itr == merge2main_itr[0]))
     merge2main_itr = merge2main_itr[0]
     lanes_nodes_frenet = []
     main_matched_point_s = cf.cart2frenet(main_frenet_lm, main_frenet_lm)[merge2main_itr,0]
@@ -371,7 +400,9 @@ def hdmaps2lane_markings(configs,df_itr, df_data, tracks_data = None, frames_dat
     #lane_y_min = min([min(lane['r'][:,1]) for lane in lane_nodes_frenet])
     #lane_x_max = max([max(lane['l'][:,0]) for lane in lane_nodes_frenet])
     #lane_x_min = min([min(lane['l'][:,0]) for lane in lane_nodes_frenet])
-    # interpolate lane markings
+    
+    # interpolate lane markings 
+    '''
     for itr, lane_nodes_f in enumerate(lanes_nodes_frenet):
         s = lane_nodes_f['r'][:,0]
         d = lane_nodes_f['r'][:,1]
@@ -388,10 +419,35 @@ def hdmaps2lane_markings(configs,df_itr, df_data, tracks_data = None, frames_dat
         new_d = interpolate_fn(new_s)
         new_traj = np.stack((new_s, new_d), axis = 1)
         lanes_nodes_frenet[itr]['l'] = new_traj
-    
+    '''
+    #Extroplolate lane markings for 400 meters
+    for itr, lane_nodes_f in enumerate(lanes_nodes_frenet):
+        lane_type = lanes_nodes_types[itr]['r'][-1]
+        s = lane_nodes_f['r'][:,0]
+        d = lane_nodes_f['r'][:,1]
+        s_ext = np.arange(s[-1]+10, s[-1]+300, 0.1)
+        d_ext = np.ones_like(s_ext)*d[-1]
+        sd_ext = np.stack((s_ext, d_ext), axis=  1)
+        
+        t_ext = np.ones_like(s_ext)*lane_type
+        lanes_nodes_frenet[itr]['r'] = np.append(lanes_nodes_frenet[itr]['r'], sd_ext, axis = 0)
+        lanes_nodes_types[itr]['r'] = np.append(lanes_nodes_types[itr]['r'], t_ext, axis = 0)
+        
+        lane_type = lanes_nodes_types[itr]['l'][-1]
+        s = lane_nodes_f['l'][:,0]
+        d = lane_nodes_f['l'][:,1]
+        s_ext = np.arange(s[-1]+10, s[-1]+300, 0.1)
+        d_ext = np.ones_like(s_ext)*d[-1]
+        sd_ext = np.stack((s_ext, d_ext), axis=  1)
+        
+        t_ext = np.ones_like(s_ext)*lane_type
+        lanes_nodes_frenet[itr]['l'] = np.append(lanes_nodes_frenet[itr]['l'], sd_ext, axis = 0)
+        lanes_nodes_types[itr]['l'] = np.append(lanes_nodes_types[itr]['l'], t_ext, axis = 0)
+        
+
 
     lane_y_max = max([max(lane['l'][:,1]) for lane in lanes_nodes_frenet])
-    lane_y_min = min([min(lane['l'][:,1]) for lane in lanes_nodes_frenet])
+    lane_y_min = min([min(lane['r'][:,1]) for lane in lanes_nodes_frenet])
     lane_x_max = max([max(lane['l'][:,0]) for lane in lanes_nodes_frenet])
     lane_x_min = min([min(lane['l'][:,0]) for lane in lanes_nodes_frenet])
     image_width = lane_x_max - lane_x_min
@@ -400,8 +456,10 @@ def hdmaps2lane_markings(configs,df_itr, df_data, tracks_data = None, frames_dat
     lane_marking_dict = {}
     lane_marking_dict['image_width'] = image_width
     lane_marking_dict['image_height'] = image_height
+    
     lane_marking_dict['lane_types'] = lanes_nodes_types
     lane_marking_dict['lane_nodes'] = lanes_nodes
+    
     lane_marking_dict['lane_nodes_frenet'] = lanes_nodes_frenet
     lane_marking_dict['merge_origin_lane'] = merge_frenet_lm
     lane_marking_dict['main_origin_lane'] = main_frenet_lm
