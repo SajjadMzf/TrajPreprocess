@@ -12,6 +12,7 @@ from time import time
 import ngsim, exid
 import argparse
 import pdb 
+
 # From ID,Frame,X,Y to xVelocity, yVelocity, xAcceleration, yAcceleration, SVs_ID
 class PreprocessTraj():
     def __init__(self, configs_file, constants_file):
@@ -135,6 +136,10 @@ class PreprocessTraj():
                 df[empty_column] = (np.ones((df.shape[0]))*-1).tolist()
             df = df.sort_values([p.TRACK_ID, p.FRAME], ascending=  [1,1])
             self.df_data_list.append(df) 
+
+    def reduce_fps(self):
+        print(' Reduce FPS to be implemented in future...') 
+
 
 
     def export_statics_metas(self):
@@ -261,12 +266,13 @@ if __name__ == '__main__':
     #parser.add_argument('config_file', type=str)
     #args = parser.parse_args()
 
-    preprocess = PreprocessTraj(
-        #args.config_file,
-        'configs/exid_preprocess6.yaml',
-        'configs/constants.yaml'
-    )
-    preprocess.dataset_specific_preprocess()
+    for i in [6]:
+        preprocess = PreprocessTraj(
+            #args.config_file,
+            'configs/exid_preprocess{}.yaml'.format(i),
+            'configs/constants.yaml'
+        )
+        preprocess.dataset_specific_preprocess()
     
     # TODO: update traj filtering
     # TODO tracks_tracks!

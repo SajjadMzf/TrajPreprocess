@@ -23,20 +23,13 @@ def cart2frenet(traj, ref):
     ref_frenet[:,0] = gamma
     traj_frenet = np.zeros((T, 2))
     for i in range(T):
-        traj2ref_dist = norm(ref-traj[i], axis=1)
-        
-        itr = np.argmin(traj2ref_dist)
-        if traj2ref_dist[itr] == 0:
-            if itr==0:
-                traj_frenet[i] = 0 
-                continue   
-            else:
-                itr -=1
-        if itr+1 >= L:
-            itr -=1 
-
-        traj_frenet[i,0] =  gamma[itr] + np.dot(ref[itr+1]-ref[itr], traj[i]-ref[itr])/norm(ref[itr+1]-ref[itr])
-        traj_frenet[i,1] = np.cross(ref[itr+1] - ref[itr], traj[i] - ref[itr])/norm(ref[itr+1]-ref[itr])
+        traj2ref_dist = norm(ref-traj[i], axis=1)     
+        itrs = list(np.argpartition(traj2ref_dist, 1)[0:2])
+        itrs.sort()
+        itr1 = itrs[0]
+        itr2 = itrs[1]
+        traj_frenet[i,0] =  gamma[itr1] + np.dot(ref[itr2]-ref[itr1], traj[i]-ref[itr1])/norm(ref[itr2]-ref[itr1])
+        traj_frenet[i,1] = np.cross(ref[itr2] - ref[itr1], traj[i] - ref[itr1])/norm(ref[itr2]-ref[itr1])
         #print('it:{}, it1:{}'.format(it,it1))
     return traj_frenet
 

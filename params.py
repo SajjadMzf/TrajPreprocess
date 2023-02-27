@@ -1,6 +1,6 @@
+DEBUG_MODE = False
 
-
-
+DELETE_PREV_VIS = False
 VISUALISE_FRENET = True
 #Visualisation parameters:
 VISUALISATION_COUNT = 1

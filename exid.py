@@ -8,10 +8,12 @@ import utils.coordinate_functions as cf
 import utils.visualise_functions as vf
 import pickle
 from scipy.interpolate import interp1d
+import matplotlib.pyplot as plt
 import cv2
 import random
 from pyproj import Proj
 from ngsim import get_svs_ids
+from utils.utils_functions import interpolate_polyline, parametrise_polyline
 
 def calc_svs(configs, df_itr,  df_data, tracks_data, frames_data):  
     # pv: preceding vehicle, fv:following vehicle, rv1(prv),rv2(rav),rv3(frv): three closest vehicles in right lane, lv1(plv),lv2(lav),lv3(frv): three closest vehicles in left lane.
@@ -82,17 +84,19 @@ def visualise_tracks(configs,df_itr, df_data, tracks_data = None, frames_data = 
     tracks_dir = 'visualisations/exid'
     if os.path.exists(tracks_dir) == False:
         os.makedirs(tracks_dir)
-    for filename in os.listdir(tracks_dir):
-        if 'File{}'.format(df_itr) in filename:
-            file_path = os.path.join(tracks_dir, filename)
-            try:
-                if os.path.isfile(file_path) or os.path.islink(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-            except Exception as e:
-                print('Failed to delete %s. Reason: %s' % (file_path, e))
     
+    if p.DELETE_PREV_VIS:
+        for filename in os.listdir(tracks_dir):
+            if 'File{}'.format(df_itr) in filename:
+                file_path = os.path.join(tracks_dir, filename)
+                try:
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.unlink(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+                except Exception as e:
+                    print('Failed to delete %s. Reason: %s' % (file_path, e))
+        
     frame_itr_list = [frame[p.FRAME][0] for frame in frames_data]
     image_width = lane_x_max - lane_x_min
     image_height = lane_y_max+bias - lane_y_min
@@ -153,6 +157,7 @@ def visualise_tracks(configs,df_itr, df_data, tracks_data = None, frames_data = 
     #     pickle.dump(lane_marking_dict, handle)
     return {'configs': None, 'df': None, 'tracks_data': None,'frames_data': None}
 
+
 def get_lane_ids(configs, df_itr, df_data, tracks_data = None, frames_data = None):
     # compute p.LANE_ID, p.LANE_WIDTH, p.Y2LANE
     with open(configs['dataset']['map_export_dir'], 'rb') as handle:
@@ -212,6 +217,8 @@ def convert2frenet(configs,df_itr, df_data, tracks_data = None, frames_data = No
     # compute p.X p.Y
     with open(configs['dataset']['map_export_dir'], 'rb') as handle:
         lane_marking_dict = pickle.load(handle)
+    lane_nodes = lane_marking_dict['lane_nodes']
+    lane_nodes_f = lane_marking_dict['lane_nodes_frenet']
     merge_frenet_origin = lane_marking_dict['merge_origin_lane']
     main_frenet_origin = lane_marking_dict['main_origin_lane']
     merge_s_bias = lane_marking_dict['merge2main_s_bias']
@@ -234,9 +241,74 @@ def convert2frenet(configs,df_itr, df_data, tracks_data = None, frames_data = No
         #    pdb.set_trace()
         tracks_data[id][p.X] = traj_frenet[:,0] + x_bias
         tracks_data[id][p.Y] = traj_frenet[:,1]
+        if p.DEBUG_MODE:
+            fig1, ax1 = plt.subplots()
+            ax1.plot(tracks_data[id][p.X],tracks_data[id][p.Y], '*')
+            for i in range(len(lane_nodes)):
+                ax1.plot(lane_nodes_f[i]['l'][:,0], lane_nodes_f[i]['l'][:,1])
+                ax1.plot(lane_nodes_f[i]['r'][:,0], lane_nodes_f[i]['r'][:,1])
+            
+            fig2, ax2 = plt.subplots()
+            ax2.plot(traj[:,0],traj[:,1], '*')
+            for i in range(len(lane_nodes)):
+                ax2.plot(lane_nodes[i]['l'][:,0], lane_nodes[i]['l'][:,1])
+                ax2.plot(lane_nodes[i]['r'][:,0], lane_nodes[i]['r'][:,1])
+                
+            fig3, ax3 = plt.subplots()
+            ax3.plot(frenet_ref[:,0],frenet_ref[:,1], '*')
+            
+            fig4, ax4 = plt.subplots()
+            ax4.plot(np.arange(0,len(tracks_data[id][p.Y_VELOCITY])),tracks_data[id][p.Y_VELOCITY], '*')
+            
+            fig5, ax5 = plt.subplots()
+            ax5.plot(np.arange(0,len(tracks_data[id][p.Y_VELOCITY])),tracks_data[id][p.X_VELOCITY], '*')
+            
+
+            #fig6, ax6 = plt.subplots()
+            #ax6.plot(frenet_ref[:,0],frenet_ref[:,1], '*')
+            
+            plt.show()
+        if p.DEBUG_MODE and id>3:
+            exit()
         #pdb.set_trace()
     return {'configs': None, 'df': None, 'tracks_data': tracks_data,'frames_data': None}
 
+
+
+def plot_traj(configs,df_itr, df_data, tracks_data = None, frames_data = None):
+    # compute p.X p.Y
+    with open(configs['dataset']['map_export_dir'], 'rb') as handle:
+        lane_marking_dict = pickle.load(handle)
+    lane_nodes = lane_marking_dict['lane_nodes']
+    lane_nodes_f = lane_marking_dict['lane_nodes_frenet']
+    fig1, ax1 = plt.subplots()
+    fig2, ax2 = plt.subplots()
+    #fig3, ax3 = plt.subplots()
+    #fig4, ax4 = plt.subplots()
+
+    for i in range(len(lane_nodes)):
+            ax1.plot(lane_nodes_f[i]['l'][:,0], lane_nodes_f[i]['l'][:,1], '*')
+            ax1.plot(lane_nodes_f[i]['r'][:,0], lane_nodes_f[i]['r'][:,1], '*')
+        
+    for i in range(len(lane_nodes)):
+            ax2.plot(lane_nodes[i]['l'][:,0], lane_nodes[i]['l'][:,1], '*')
+            ax2.plot(lane_nodes[i]['r'][:,0], lane_nodes[i]['r'][:,1], '*')
+            
+    for id, track_data in enumerate(tracks_data):
+        if id>10:
+            break
+        ax1.plot(tracks_data[id][p.X],tracks_data[id][p.Y],'.')
+        ax2.plot(tracks_data[id]['xCenter'],tracks_data[id]['yCenter'],'.' )
+        #ax3.plot(np.arange(0,len(tracks_data[id][p.Y_VELOCITY])),tracks_data[id][p.Y_VELOCITY], '*')
+        #ax4.plot(np.arange(0,len(tracks_data[id][p.Y_VELOCITY])),tracks_data[id][p.X_VELOCITY], '*')
+        
+
+            #fig6, ax6 = plt.subplots()
+            #ax6.plot(frenet_ref[:,0],frenet_ref[:,1], '*')
+            
+    plt.show()
+        
+    return {'configs': None, 'df': None, 'tracks_data': None,'frames_data': None}
 
 
 def hdmaps2lane_markings(configs,df_itr, df_data, tracks_data = None, frames_data = None):
@@ -288,7 +360,6 @@ def hdmaps2lane_markings(configs,df_itr, df_data, tracks_data = None, frames_dat
         
         r_nodes_type = []
         l_nodes_type = []
-        
         for way_itr in range(n_ways):
             # Right lane marking
             r_way = lane_ways['r'][way_itr]
@@ -299,18 +370,11 @@ def hdmaps2lane_markings(configs,df_itr, df_data, tracks_data = None, frames_dat
                 node_itr = node_ids.index(r_node_id)
                 r_nodes_xy.append(node_poses[node_itr])
             r_nodes_xy = np.array(r_nodes_xy)    
-                #Intrapolate
-            x = r_nodes_xy[:,0]
-            y = r_nodes_xy[:,1]
-            interpolate_fn = interp1d(x,y)
-            new_x = np.linspace(x[0], x[-1], 100)
-            new_y = interpolate_fn(new_x)
-            r_nodes_xy_n = np.stack((new_x, new_y), axis = 1)
-            for i in range(len(r_nodes_xy_n)):
-                r_nodes.append([float(r_nodes_xy_n[i,0]), float(r_nodes_xy_n[i,1])])
-            
-            r_nodes_type.extend([lane_ways['rt'][way_itr]]*len(r_nodes_xy_n))
-            
+            # Intrapolate
+            r_nodes_type.extend([lane_ways['rt'][way_itr]]*len(r_nodes_xy))
+            r_nodes.append(r_nodes_xy)
+        
+        for way_itr in range(n_ways):
             # Left Lane Marking
             l_way = lane_ways['l'][way_itr]
             l_node_ids = ways[str(l_way)]
@@ -320,25 +384,67 @@ def hdmaps2lane_markings(configs,df_itr, df_data, tracks_data = None, frames_dat
                 node_itr = node_ids.index(l_node_id)
                 l_nodes_xy.append(node_poses[node_itr])
             l_nodes_xy = np.array(l_nodes_xy)    
-                #Intrapolate
-            x = l_nodes_xy[:,0]
-            y = l_nodes_xy[:,1]
-            interpolate_fn = interp1d(x,y)
-            new_x = np.linspace(x[0], x[-1], 100)
-            new_y = interpolate_fn(new_x)
-            l_nodes_xy_n = np.stack((new_x, new_y), axis = 1)
-            for i in range(len(l_nodes_xy_n)):
-                l_nodes.append([float(l_nodes_xy_n[i,0]), float(l_nodes_xy_n[i,1])])
+
+            l_nodes_type.extend([lane_ways['lt'][way_itr]]*len(l_nodes_xy))
+            l_nodes.append(l_nodes_xy)
+        
             
-            l_nodes_type.extend([lane_ways['lt'][way_itr]]*len(l_nodes_xy_n))
+            '''
+                #Intrapolate
+            x = r_nodes_xy[:,0]
+            y = r_nodes_xy[:,1]
+            interpolate_fn = interp1d(x,y)
+            new_x = x #np.linspace(x[0], x[-1], 100)
+            new_y = y #interpolate_fn(new_x)
+            r_nodes_xy_n = np.stack((new_x, new_y), axis = 1)
+            for i in range(len(r_nodes_xy_n)):
+                r_nodes.append([float(r_nodes_xy_n[i,0]), float(r_nodes_xy_n[i,1])])
+            '''
+        r_nodes_arr = np.concatenate(r_nodes, axis = 0)
+        l_nodes_arr = np.concatenate(l_nodes, axis = 0)
+        r_nodes_type = np.array(r_nodes_type)
+        l_nodes_type = np.array(l_nodes_type)
+        assert(len(r_nodes_arr)== len(r_nodes_type))
+        assert(len(l_nodes_arr)== len(l_nodes_type))
+        
+
+        new_u = np.linspace(0,1, 10000)
+        
+        r_tck, r_u, r_duplicate = parametrise_polyline(r_nodes_arr)
+        if r_duplicate:
+            r_nodes_type = np.delete(r_nodes_type, r_duplicate, axis = 0)
+        
+        r_u_type = np.zeros_like(new_u)
+        ru_ind = 0
+        for i, u in enumerate(new_u):
+            if u > r_u[ru_ind]:
+                ru_ind+=1
+            r_u_type[i] = r_nodes_type[ru_ind]
             
 
-        r_nodes = np.array(r_nodes)
-        l_nodes = np.array(l_nodes)
+
+        r_nodes = interpolate_polyline(r_tck, new_u)
+        r_nodes_type = r_u_type
+        
+        l_tck, l_u, l_duplicate = parametrise_polyline(l_nodes_arr)
+        if l_duplicate:
+            l_nodes_type = np.delete(l_nodes_type, l_duplicate, axis = 0)
+        
+        l_u_type = np.zeros_like(new_u)
+        lu_ind = 0
+        for i, u in enumerate(new_u):
+            if u > l_u[lu_ind]:
+                lu_ind+=1
+            l_u_type[i] = l_nodes_type[lu_ind]
+            
+        l_nodes = interpolate_polyline(l_tck, new_u)
+        l_nodes_type = l_u_type
+        
+        
         lane_nodes['r'] = r_nodes#cf.longlat2xy(np.array(r_nodes), longlat_origin)
         lane_nodes['l'] = l_nodes#cf.longlat2xy(np.array(l_nodes), longlat_origin)
-        lane_nodes_types['r'] = np.array(r_nodes_type)
-        lane_nodes_types['l'] = np.array(l_nodes_type)
+        lane_nodes_types['r'] = r_nodes_type
+        lane_nodes_types['l'] = l_nodes_type
         #pdb.set_trace()
         r_keep = np.ones((len(lane_nodes['r'])), dtype = bool)
         for i in range(len(lane_nodes['r'])-1):
@@ -409,7 +515,7 @@ def hdmaps2lane_markings(configs,df_itr, df_data, tracks_data = None, frames_dat
         interpolate_fn = interp1d(s,d)
         new_s = np.arange(min(s), max(s), 0.1)
         new_d = interpolate_fn(new_s)
-        new_traj = np.stack((new_s, new_d), axis = 1)
+        new_traj = np.stack((new_s, new_d), axis = 1)f
         lanes_nodes_frenet[itr]['r'] = new_traj
 
         s = lane_nodes_f['l'][:,0]

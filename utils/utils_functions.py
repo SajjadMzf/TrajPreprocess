@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.interpolate as interp
 
 def digital_filter(x, symmetric_coef, normalisation_factor, smoothing = False):
     y = np.zeros_like(x)
@@ -19,3 +20,15 @@ def digital_filter(x, symmetric_coef, normalisation_factor, smoothing = False):
         y[0:past_future_dep] = y[past_future_dep]
         y[len(y)-past_future_dep:] = y[len(y)-past_future_dep-1]
     return y
+
+def parametrise_polyline(polyline):
+    duplicates = []
+    for i in range(1, len(polyline)):
+        if np.allclose(polyline[i], polyline[i-1]):
+            duplicates.append(i)
+    if duplicates:
+        polyline = np.delete(polyline, duplicates, axis=0)
+    tck, u = interp.splprep(polyline.T, s=0)
+    return tck, u, duplicates
+def interpolate_polyline(tck, u):
+    return np.column_stack(interp.splev(u, tck))
