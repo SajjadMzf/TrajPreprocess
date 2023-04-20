@@ -109,11 +109,13 @@ class PreprocessTraj():
 
 
     def match_columns(self):
+            self.output_columns = []
             matched_input_columns = []
             matched_output_columns = []
             unmatched_input_columns = self.configs['unmatched_columns']
             self.unmatched_output_columns = []
             for key, value in self.configs['matched_columns'].items():
+                self.output_columns.append(eval('p.{}'.format(key)))
                 if value != 'None':
                     matched_input_columns.append(value)
                     matched_output_columns.append(eval('p.{}'.format(key)))
@@ -121,6 +123,7 @@ class PreprocessTraj():
                     self.unmatched_output_columns.append(eval('p.{}'.format(key)))
             matched_input_columns.extend(unmatched_input_columns)
             matched_output_columns.extend(unmatched_input_columns)
+            self.output_columns.extend(unmatched_input_columns)
             self.input2output = dict(zip(matched_input_columns, matched_output_columns))
             self.output2input = dict(zip(matched_output_columns, matched_input_columns))
 
@@ -138,7 +141,9 @@ class PreprocessTraj():
             self.df_data_list.append(df) 
 
     def reduce_fps(self):
-        print(' Reduce FPS to be implemented in future...') 
+        fps_div = int(self.configs['dataset']['dataset_fps']/self.configs['dataset']['desired_fps'])
+        for file_itr, frame_data in enumerate(self.frame_data_list):
+            self.frame_data_list[file_itr] = frame_data[0:-1:fps_div]
 
 
 
@@ -201,6 +206,7 @@ class PreprocessTraj():
                 print('Exporting DF file: {}'.format(self.data_files[file_itr], len(self.track_data_list[file_itr])))
                 df = self.df_data_list[file_itr]
                 df.sort_values(by=[p.TRACK_ID, p.FRAME], inplace = True)
+                df = df[self.output_columns]
                 df.to_csv(self.df_dirs[file_itr], index = False)
         
         if data_type == 'track' or data_type == 'all':
@@ -266,7 +272,7 @@ if __name__ == '__main__':
     #parser.add_argument('config_file', type=str)
     #args = parser.parse_args()
 
-    for i in [6]:
+    for i in [2]:
         preprocess = PreprocessTraj(
             #args.config_file,
             'configs/exid_preprocess{}.yaml'.format(i),

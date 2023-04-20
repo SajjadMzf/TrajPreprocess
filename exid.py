@@ -15,38 +15,46 @@ from pyproj import Proj
 from ngsim import get_svs_ids
 from utils.utils_functions import interpolate_polyline, parametrise_polyline
 
-def calc_svs(configs, df_itr,  df_data, tracks_data, frames_data):  
-    # pv: preceding vehicle, fv:following vehicle, rv1(prv),rv2(rav),rv3(frv): three closest vehicles in right lane, lv1(plv),lv2(lav),lv3(frv): three closest vehicles in left lane.
-    # we used same names for side vehicles as highD, however, their definitions are different. 
+def calc_svs_mmntp(configs, df_itr,  df_data, tracks_data, frames_data):  
+    # pv: preceding vehicle, fv:following vehicle, 
+    # rv1(prv),rv2(rav),rv3(frv): three closest vehicles in right lane,
+    # lv1(plv),lv2(lav),lv3(frv): three closest vehicles in left lane.
     for frame_itr, frame_data in enumerate(frames_data):
         for track_itr, track_id in enumerate(frame_data[p.TRACK_ID]):
             X_ = frame_data[p.X][track_itr]
             lane_id = frame_data[p.LANE_ID][track_itr]
             slv_itrs = frame_data[p.LANE_ID] == lane_id
             # pv
-            pv_itrs = np.nonzero(np.logical_and(frame_data[p.X]> X_, slv_itrs))[0]
+            pv_itrs = np.nonzero(\
+                np.logical_and(frame_data[p.X]> X_, slv_itrs))[0]
             if len(pv_itrs)>0:
                 pv_itr = np.argmin(abs(frame_data[p.X][pv_itrs]- X_))
-                frames_data[frame_itr][p.PRECEDING_ID][track_itr] = frame_data[p.TRACK_ID][pv_itrs[pv_itr]]
+                frames_data[frame_itr][p.PRECEDING_ID][track_itr] =\
+                      frame_data[p.TRACK_ID][pv_itrs[pv_itr]]
             #fv
-            fv_itrs = np.nonzero(np.logical_and(frame_data[p.X]< X_, slv_itrs))[0]
+            fv_itrs = np.nonzero(\
+                np.logical_and(frame_data[p.X]< X_, slv_itrs))[0]
             if len(fv_itrs)>0:
                 fv_itr = np.argmin(abs(frame_data[p.X][fv_itrs]- X_))
-                frames_data[frame_itr][p.FOLLOWING_ID][track_itr] = frame_data[p.TRACK_ID][fv_itrs[fv_itr]]
+                frames_data[frame_itr][p.FOLLOWING_ID][track_itr] =\
+                      frame_data[p.TRACK_ID][fv_itrs[fv_itr]]
             
             # rv1, rv2, rv3
-            rvs = np.nonzero(frame_data[p.LANE_ID] == (lane_id+1))[0] #left to right driving in image plane, bot to top lane orders 
+            #left to right driving in image plane, bot to top lane orders 
+            rvs = np.nonzero(frame_data[p.LANE_ID] == (lane_id+1))[0] 
             if len(rvs)>0:
                 rv_itrs = np.argsort(np.abs(frame_data[p.X][rvs]-X_))
                 rv_n = min([len(rv_itrs),3])
                 rv_itrs = rv_itrs[0:rv_n]
                 rv_itrs = np.argsort(frame_data[p.X][rvs[rv_itrs]]-X_)
                 for i, rv_itr in enumerate(rv_itrs):
-                    frames_data[frame_itr][p.RV_IDs[i]][track_itr] = frame_data[p.TRACK_ID][rvs[rv_itr]]
+                    frames_data[frame_itr][p.RV_IDs[i]][track_itr] = \
+                        frame_data[p.TRACK_ID][rvs[rv_itr]]
 
 
             # lv1, lv2, lv3
-            lvs = np.nonzero(frame_data[p.LANE_ID] == (lane_id-1))[0] #left to right driving in image plane, bot to top lane orders
+            #left to right driving in image plane, bot to top lane orders
+            lvs = np.nonzero(frame_data[p.LANE_ID] == (lane_id-1))[0] 
             if len(lvs)>0:    
                 lv_itrs = np.argsort(np.abs(frame_data[p.X][lvs]-X_))
                 lv_n = min([len(lv_itrs),3])
@@ -54,10 +62,97 @@ def calc_svs(configs, df_itr,  df_data, tracks_data, frames_data):
                 lv_itrs = np.argsort(frame_data[p.X][lvs[lv_itrs]]-X_)
                 #pdb.set_trace()
                 for i, lv_itr in enumerate(lv_itrs):
-                    frames_data[frame_itr][p.LV_IDs[i]][track_itr] = frame_data[p.TRACK_ID][lvs[lv_itr]]
+                    frames_data[frame_itr][p.LV_IDs[i]][track_itr] = \
+                        frame_data[p.TRACK_ID][lvs[lv_itr]]
             
             
-    return {'configs': None, 'df': None, 'tracks_data': None,'frames_data': frames_data}
+    return {'configs': None, 
+            'df': None, 
+            'tracks_data': None,
+            'frames_data': frames_data}
+
+
+
+def calc_svs_povl(configs, df_itr,  df_data, tracks_data, frames_data):  
+    # pv: preceding vehicle, fv:following vehicle, 
+    # rcp/lcp,rfp/lfp: right/left close preceding, right/left far preceding
+    # rcf/lcf,rff/lff: right/left close following, right/left far following
+    
+    for frame_itr, frame_data in enumerate(frames_data):
+        for track_itr, track_id in enumerate(frame_data[p.TRACK_ID]):
+            X_ = frame_data[p.X][track_itr]
+            lane_id = frame_data[p.LANE_ID][track_itr]
+            slv_itrs = frame_data[p.LANE_ID] == lane_id
+            # pv
+            pv_itrs = np.nonzero(\
+                np.logical_and(frame_data[p.X]> X_, slv_itrs))[0]
+            if len(pv_itrs)>0:
+                pv_itr = np.argmin(abs(frame_data[p.X][pv_itrs]- X_))
+                frames_data[frame_itr][p.PRECEDING_ID][track_itr] =\
+                      frame_data[p.TRACK_ID][pv_itrs[pv_itr]]
+            #fv
+            fv_itrs = np.nonzero(\
+                np.logical_and(frame_data[p.X]< X_, slv_itrs))[0]
+            if len(fv_itrs)>0:
+                fv_itr = np.argmin(abs(frame_data[p.X][fv_itrs]- X_))
+                frames_data[frame_itr][p.FOLLOWING_ID][track_itr] =\
+                      frame_data[p.TRACK_ID][fv_itrs[fv_itr]]
+            
+            # rcp, rfp, rcf, rff
+            #left to right driving in image plane, bot to top lane orders 
+            
+            rv_itrs = frame_data[p.LANE_ID] == (lane_id+1) 
+            
+            rps = np.nonzero(\
+                np.logical_and(frame_data[p.X]>= X_, rv_itrs))[0]
+            
+            if len(rps)>0:
+                rp_itrs = np.argsort(np.abs(frame_data[p.X][rps]-X_))
+                rp_n = min([len(rp_itrs),2])
+                rp_itrs = rp_itrs[0:rp_n]
+                for i, rp_itr in enumerate(rp_itrs):
+                    frames_data[frame_itr][p.RP_IDs[i]][track_itr] = \
+                        frame_data[p.TRACK_ID][rps[rp_itr]]
+                    
+            rfs = np.nonzero(\
+                np.logical_and(frame_data[p.X]< X_, rv_itrs))[0]
+            if len(rfs)>0:
+                rf_itrs = np.argsort(np.abs(frame_data[p.X][rfs]-X_))
+                rf_n = min([len(rf_itrs),2])
+                rf_itrs = rf_itrs[0:rf_n]
+                for i, rf_itr in enumerate(rf_itrs):
+                    frames_data[frame_itr][p.RF_IDs[i]][track_itr] = \
+                        frame_data[p.TRACK_ID][rfs[rf_itr]]
+                    
+            lv_itrs = frame_data[p.LANE_ID] == (lane_id-1) 
+            
+            lps = np.nonzero(\
+                np.logical_and(frame_data[p.X]>= X_, lv_itrs))[0]
+            
+            if len(lps)>0:
+                lp_itrs = np.argsort(np.abs(frame_data[p.X][lps]-X_))
+                lp_n = min([len(lp_itrs),2])
+                lp_itrs = lp_itrs[0:lp_n]
+                for i, lp_itr in enumerate(lp_itrs):
+                    frames_data[frame_itr][p.LP_IDs[i]][track_itr] = \
+                        frame_data[p.TRACK_ID][lps[lp_itr]]
+                    
+            lfs = np.nonzero(\
+                np.logical_and(frame_data[p.X]< X_, lv_itrs))[0]
+            if len(lfs)>0:
+                lf_itrs = np.argsort(np.abs(frame_data[p.X][lfs]-X_))
+                lf_n = min([len(lf_itrs),2])
+                lf_itrs = lf_itrs[0:lf_n]
+                for i, lf_itr in enumerate(lf_itrs):
+                    frames_data[frame_itr][p.LF_IDs[i]][track_itr] = \
+                        frame_data[p.TRACK_ID][lfs[lf_itr]]
+            
+    return {'configs': None, 
+            'df': None, 
+            'tracks_data': None,
+            'frames_data': frames_data}
+
+
 
 
 
@@ -125,8 +220,6 @@ def visualise_tracks(configs,df_itr, df_data, tracks_data = None, frames_data = 
             sv_ids = get_svs_ids(tracks_data[tv_itr])
             #images = []
             for fr_itr, frame in enumerate(frames):
-                if fr_itr%5:
-                    continue
                 frame_itr = frame_itr_list.index(frame)
                 frame_data = frames_data[frame_itr]
                 image = np.copy(background_image)
@@ -275,30 +368,39 @@ def convert2frenet(configs,df_itr, df_data, tracks_data = None, frames_data = No
 
 
 
-def plot_traj(configs,df_itr, df_data, tracks_data = None, frames_data = None):
+def plot_traj(configs, df_itr, df_data, tracks_data = None, frames_data = None, plot_velocity = True):
     # compute p.X p.Y
     with open(configs['dataset']['map_export_dir'], 'rb') as handle:
         lane_marking_dict = pickle.load(handle)
     lane_nodes = lane_marking_dict['lane_nodes']
     lane_nodes_f = lane_marking_dict['lane_nodes_frenet']
     fig1, ax1 = plt.subplots()
-    fig2, ax2 = plt.subplots()
+    #fig2, ax2 = plt.subplots()
     #fig3, ax3 = plt.subplots()
     #fig4, ax4 = plt.subplots()
 
     for i in range(len(lane_nodes)):
             ax1.plot(lane_nodes_f[i]['l'][:,0], lane_nodes_f[i]['l'][:,1], '*')
             ax1.plot(lane_nodes_f[i]['r'][:,0], lane_nodes_f[i]['r'][:,1], '*')
-        
-    for i in range(len(lane_nodes)):
-            ax2.plot(lane_nodes[i]['l'][:,0], lane_nodes[i]['l'][:,1], '*')
-            ax2.plot(lane_nodes[i]['r'][:,0], lane_nodes[i]['r'][:,1], '*')
+    #    
+    #for i in range(len(lane_nodes)):
+    #        ax2.plot(lane_nodes[i]['l'][:,0], lane_nodes[i]['l'][:,1], '*')
+    #        ax2.plot(lane_nodes[i]['r'][:,0], lane_nodes[i]['r'][:,1], '*')
             
     for id, track_data in enumerate(tracks_data):
-        if id>10:
+        if id>3:
             break
-        ax1.plot(tracks_data[id][p.X],tracks_data[id][p.Y],'.')
-        ax2.plot(tracks_data[id]['xCenter'],tracks_data[id]['yCenter'],'.' )
+        ax1.plot(tracks_data[id][p.X], tracks_data[id][p.Y], '.')
+        array_size = len(tracks_data[id][p.X])
+        dx = tracks_data[id][p.X_VELOCITY][0]*np.arange(array_size)*configs['dataset']['desired_fps']
+        dy = tracks_data[id][p.Y_VELOCITY][0]*np.arange(array_size)*configs['dataset']['desired_fps']
+        ax1.plot(tracks_data[id][p.X][0]+dx, tracks_data[id][p.Y][0]+dy, '.')
+        
+        #ax2.plot(tracks_data[id]['xCenter'],tracks_data[id]['yCenter'],'.' )
+        if plot_velocity:
+            ax1.quiver(tracks_data[id][p.X], tracks_data[id][p.Y], tracks_data[id][p.X_VELOCITY], tracks_data[id][p.Y_VELOCITY], width = 0.001, angles='xy', scale_units='xy')
+          
+
         #ax3.plot(np.arange(0,len(tracks_data[id][p.Y_VELOCITY])),tracks_data[id][p.Y_VELOCITY], '*')
         #ax4.plot(np.arange(0,len(tracks_data[id][p.Y_VELOCITY])),tracks_data[id][p.X_VELOCITY], '*')
         
@@ -408,7 +510,7 @@ def hdmaps2lane_markings(configs,df_itr, df_data, tracks_data = None, frames_dat
         assert(len(l_nodes_arr)== len(l_nodes_type))
         
 
-        new_u = np.linspace(0,1, 10000)
+        new_u = np.linspace(0,1, 5000)
         
         r_tck, r_u, r_duplicate = parametrise_polyline(r_nodes_arr)
         if r_duplicate:

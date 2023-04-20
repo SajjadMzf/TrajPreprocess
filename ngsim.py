@@ -20,17 +20,17 @@ def traj_smoothing(configs,itr,  df_data, tracks_data, frames_data):
     
     return {'configs': None, 'df': None, 'tracks_data': tracks_data,'frames_data': None}
 
-def calc_vel_acc(configs,itr,  df_data, tracks_data, frames_data):
+def calc_vel_acc(configs,df_itr,  df_data, tracks_data, frames_data):
     for itr, track_data in enumerate(tracks_data):
-        x_velo = digital_filter(track_data[p.X], np.array([-2,-1,0,1,2]), 10)
-        y_velo = digital_filter(track_data[p.Y], np.array([-2,-1,0,1,2]), 10)
-        x_acc = digital_filter(x_velo, np.array([-2,-1,0,1,2]), 10)
-        y_acc = digital_filter(y_velo, np.array([-2,-1,0,1,2]), 10)
+        x_velo = digital_filter(track_data[p.X], np.array([-2,-1,0,1,2]), 10)*configs['dataset']['desired_fps']
+        y_velo = digital_filter(track_data[p.Y], np.array([-2,-1,0,1,2]), 10)*configs['dataset']['desired_fps']
+        x_acc = digital_filter(x_velo, np.array([-2,-1,0,1,2]), 10)*configs['dataset']['desired_fps']
+        y_acc = digital_filter(y_velo, np.array([-2,-1,0,1,2]), 10)*configs['dataset']['desired_fps']
                 
-        tracks_data[itr][p.X_VELOCITY] = digital_filter(track_data[p.X], np.array([-2,-1,0,1,2]), 10)
-        tracks_data[itr][p.Y_VELOCITY] = digital_filter(track_data[p.Y], np.array([-2,-1,0,1,2]), 10)
-        tracks_data[itr][p.X_ACCELERATION] = digital_filter(x_velo, np.array([-2,-1,0,1,2]), 10)
-        tracks_data[itr][p.Y_ACCELERATION] = digital_filter(y_velo, np.array([-2,-1,0,1,2]), 10)
+        tracks_data[itr][p.X_VELOCITY] = x_velo
+        tracks_data[itr][p.Y_VELOCITY] = y_velo
+        tracks_data[itr][p.X_ACCELERATION] = x_acc
+        tracks_data[itr][p.Y_ACCELERATION] = y_acc
 
     return {'configs': None, 'df': None, 'tracks_data': tracks_data,'frames_data': None}
 
