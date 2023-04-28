@@ -272,7 +272,7 @@ if __name__ == '__main__':
     #parser.add_argument('config_file', type=str)
     #args = parser.parse_args()
 
-    for i in [2]:
+    for i in [2, 3,4,6]:
         preprocess = PreprocessTraj(
             #args.config_file,
             'configs/exid_preprocess{}.yaml'.format(i),

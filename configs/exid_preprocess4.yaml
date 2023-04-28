@@ -10,7 +10,7 @@ dataset:
   fileranges: range(61,73) 
   filestring: "{}_tracks.csv"
   dataset_fps: 25
-  desired_fps: 25
+  desired_fps: 5
   UTMZone: '32U'
   xUtmOrigin: 353013.5 # lat: 50.897509
   yUtmOrigin: 5640508.6 # lon:  6.909775
