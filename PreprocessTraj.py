@@ -9,7 +9,7 @@ import params as p
 from utils.data_frame_functions import group_df, group2df
 import utils.coordinate_functions as cf
 from time import time
-import ngsim, exid
+import ngsim, exid, highd
 import argparse
 import pdb 
 
@@ -121,11 +121,13 @@ class PreprocessTraj():
                     matched_output_columns.append(eval('p.{}'.format(key)))
                 else:
                     self.unmatched_output_columns.append(eval('p.{}'.format(key)))
-            matched_input_columns.extend(unmatched_input_columns)
-            matched_output_columns.extend(unmatched_input_columns)
-            self.output_columns.extend(unmatched_input_columns)
+            if unmatched_input_columns is not None:
+                matched_input_columns.extend(unmatched_input_columns)
+                matched_output_columns.extend(unmatched_input_columns)
+                self.output_columns.extend(unmatched_input_columns)
             self.input2output = dict(zip(matched_input_columns, matched_output_columns))
             self.output2input = dict(zip(matched_output_columns, matched_input_columns))
+            
 
     def initialise_df(self):
         self.df_data_list = []
@@ -272,7 +274,17 @@ if __name__ == '__main__':
     #parser.add_argument('config_file', type=str)
     #args = parser.parse_args()
 
-    for i in [2, 3,4,6]:
+    '''
+    preprocess = PreprocessTraj(
+            #args.config_file,
+            'configs/highd_preprocess.yaml',
+            'configs/constants.yaml'
+        )
+    preprocess.dataset_specific_preprocess()
+    
+    exit()
+    '''
+    for i in [2]: #3,4,6]:
         preprocess = PreprocessTraj(
             #args.config_file,
             'configs/exid_preprocess{}.yaml'.format(i),
@@ -280,5 +292,3 @@ if __name__ == '__main__':
         )
         preprocess.dataset_specific_preprocess()
     
-    # TODO: update traj filtering
-    # TODO tracks_tracks!

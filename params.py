@@ -38,8 +38,17 @@ X_VELOCITY = "xVelocity"
 Y_VELOCITY = "yVelocity"
 X_ACCELERATION = "xAcceleration"
 Y_ACCELERATION = "yAcceleration"
+
+S = "s"
+D = "d"
+S_VELOCITY = "sVelocity"
+D_VELOCITY = "dVelocity"
+S_ACCELERATION = "sAcceleration"
+D_ACCELERATION = "dAcceleration"
+
 WIDTH = "width"
 HEIGHT = "height"
+HEADING = 'heading'
 PRECEDING_ID = "precedingId"
 FOLLOWING_ID = "followingId"
 LEFT_PRECEDING_ID = "leftPrecedingId"

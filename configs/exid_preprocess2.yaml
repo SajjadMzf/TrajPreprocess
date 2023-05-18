@@ -7,11 +7,11 @@ dataset:
   lane_markings_yml_dir:  '../../Dataset/exiD-dataset-v2.0/maps/!lane_markings/2_aachen_brand.yaml'
   map_export_dir: '../../Dataset/exid/Maps/39-52.pickle'
   # in dataset with large number of data files, we use fileranges and filestring
-  fileranges: range(39,53) #range(39,53) 
+  fileranges: range(39,40) #range(39,53) 
   filestring: "{}_tracks.csv"
   dataset_fps: 25
   desired_fps: 5
-  UTMZone: '32U'
+  UTMZone: '32' #32U
   xUtmOrigin: 298089.6 # lon: 6.137363
   yUtmOrigin: 5626462.9 # lat: 50.754772
 ordered_preprocess_functions: # 'all' means function is designed to be applied to all data files, 'one' means it should be iterated on each data files.
@@ -31,7 +31,7 @@ ordered_preprocess_functions: # 'all' means function is designed to be applied t
   - ['exid.get_lane_ids', 'one']
   - ['ngsim.calc_vel_acc', 'one']
   - ['self.overwrite_data(source = "track")', 'all']
-  - ['self.reduce_fps()', 'all']
+  #- ['self.reduce_fps()', 'all']
   - ['exid.calc_svs_povl', 'one']
   - ['self.overwrite_data(source = "frame")', 'all']
   #- ['exid.visualise_tracks', 'one']
@@ -39,21 +39,27 @@ ordered_preprocess_functions: # 'all' means function is designed to be applied t
   
 # Columns to keep while they are not necessary matching
 unmatched_columns: 
-  - xCenter 
-  - yCenter
+  
 # Match new dataset columns to highD columns in use for prediction model. None if there is no matchig
 matched_columns:
   # These are the columns essential for conversion: frame, id, x,y 
   FRAME: "frame"
   TRACK_ID: "trackId"
-  X: None
-  Y: None
-  X_VELOCITY: None #lonVelocity
-  Y_VELOCITY: None #latVelocity
-  X_ACCELERATION: None #lonAcceleration 
-  Y_ACCELERATION: None #latAcceleration
+  X: xCenter
+  Y: yCenter
+  X_VELOCITY: xVelocity #lonVelocity
+  Y_VELOCITY: yVelocity #latVelocity
+  X_ACCELERATION: xAcceleration #lonAcceleration 
+  Y_ACCELERATION: yAcceleration #latAcceleration
+  D: None #cross track
+  S: None #along track
+  D_VELOCITY: None
+  S_VELOCITY: None
+  D_ACCELERATION: None
+  S_ACCELERATION: None
   WIDTH: 'length'
   HEIGHT: 'width'
+  HEADING: 'heading'
   PRECEDING_ID: None
   FOLLOWING_ID: None
   LEFT_VEHICLE1_ID: None

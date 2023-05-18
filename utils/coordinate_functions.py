@@ -34,7 +34,7 @@ def cart2frenet(traj, ref):
     return traj_frenet
 
 
-def frenet2cart( traj, ref): #TODO: needs update based on cart2frenet #assumption: traj y>ref y , ref is in cart coordinate equally it means thetha>0
+def frenet2cart( traj, ref):
         #print('FRENET2CART')
         epsilon=sys.float_info.epsilon
         L = ref.shape[0]
@@ -54,14 +54,8 @@ def frenet2cart( traj, ref): #TODO: needs update based on cart2frenet #assumptio
 
             thetha1 = np.arctan((ref[it2,1]-ref[it1,1])/(ref[it2,0]-ref[it1,0]+epsilon))
             
-            thetha = np.arctan((np.abs(traj[i,1]))/(np.abs(traj[i,0]- gamma[it1])+epsilon))
-            #print('log')
-            #print(traj[i,1])
-            #print(traj[i,0])
-            #print(it1)
-            #print(thetha)
-            #if thetha < np.abs(thetha1):
-            #    thetha *= -1
+            thetha = np.arctan((traj[i,1])/(traj[i,0]-gamma[it1]+epsilon))
+            
             thetha_cart = thetha1+thetha
             dist2origin = np.sqrt(np.power(traj[i,1], 2) + np.power((traj[i,0]- gamma[it1]), 2))
             #assert(np.sin(thetha_cart)>0)
