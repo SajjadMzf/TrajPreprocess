@@ -12,7 +12,7 @@ def group_df(df, by):
         groups[current_group] = {}
         for column in df.columns:
             if column == by:
-                groups[current_group][column] =  np.ones_like(rows[p.X].values)*group_id
+                groups[current_group][column] =  np.ones_like(rows[p.TRACK_ID].values)*group_id
             else:
                 groups[current_group][column] = rows[column].values   
         current_group+= 1

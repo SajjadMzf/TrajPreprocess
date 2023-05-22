@@ -273,8 +273,6 @@ if __name__ == '__main__':
     #parser = argparse.ArgumentParser()
     #parser.add_argument('config_file', type=str)
     #args = parser.parse_args()
-
-    '''
     preprocess = PreprocessTraj(
             #args.config_file,
             'configs/highd_preprocess.yaml',
@@ -283,7 +281,7 @@ if __name__ == '__main__':
     preprocess.dataset_specific_preprocess()
     
     exit()
-    '''
+    
     for i in [2]: #3,4,6]:
         preprocess = PreprocessTraj(
             #args.config_file,

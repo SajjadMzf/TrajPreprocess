@@ -1,0 +1,63 @@
+dataset:
+  name: 'highd'
+  description: 'N/A'
+  import_dir: '../../Dataset/HighD/Tracks'
+  meta_dir: '../.../Dataset/HighD/Metas'
+  statics_dir: '../../Dataset/HighD/Statics'
+  export_dir: '../../Dataset/highd_processed/'
+  map_export_dir: '../../Dataset/highd_processed'
+  
+  # in dataset with large number of data files, we use fileranges and filestring
+  fileranges: list(range(1,61)) #61
+  filestring: "{}_tracks.csv"
+  meta_file: "{}_recordingMeta.csv"
+  static_file: "{}_tracksMeta.csv"
+  dataset_fps: 25
+  desired_fps: 5
+ordered_preprocess_functions: # 'all' means function is designed to be applied to all data files, 'one' means it should be iterated on each data files.
+  # Utility functtions:
+  ##- ['self.export_data()', 'all'] # optional
+  ##- ['self.import_processed_data()', 'all'] #optional
+  ##- ['exid.visualise_tracks', 'one']
+  ##- ['exid.plot_traj', 'one']
+  ##- ['self.reduce_fps()', 'all']
+  
+  # Required functions:
+  - ['self.match_columns()', 'all']
+  - ['self.initialise_df()', 'all']
+  - ['self.overwrite_data(source = "df")', 'all']
+  - ['highd.convert_drivingdir', 'one']
+  - ['self.overwrite_data(source = "track")', 'all']
+  - ['self.reduce_fps()', 'all']
+  - ['exid.calc_svs_povl', 'one']
+  - ['self.overwrite_data(source = "frame")', 'all']
+  - ['self.export_data()', 'all']
+# Columns to keep while they are not necessary matching
+unmatched_columns: 
+  
+# Match new dataset columns to highD columns in use for prediction model. None if there is no matchig
+matched_columns:
+  # These are the columns essential for conversion: frame, id, x,y 
+  FRAME: "frame"
+  TRACK_ID: "id"
+  D: 'y'
+  S: 'x'
+  D_VELOCITY: 'yVelocity' #lonVelocity
+  S_VELOCITY: 'xVelocity' #latVelocity
+  D_ACCELERATION: 'yAcceleration' #lonAcceleration 
+  S_ACCELERATION: 'xAcceleration' #latAcceleration
+  WIDTH: 'width'
+  HEIGHT: 'height'
+  PRECEDING_ID: precedingId
+  FOLLOWING_ID: followingId
+  LEFT_CLOSE_PRECEDING_ID: None
+  LEFT_FAR_PRECEDING_ID: None
+  LEFT_CLOSE_FOLLOWING_ID: None
+  LEFT_FAR_FOLLOWING_ID: None
+  RIGHT_CLOSE_PRECEDING_ID: None
+  RIGHT_FAR_PRECEDING_ID: None
+  RIGHT_CLOSE_FOLLOWING_ID: None
+  RIGHT_FAR_FOLLOWING_ID: None
+  LANE_ID: 'laneId'
+  Y2LANE: None
+  LANE_WIDTH: None
