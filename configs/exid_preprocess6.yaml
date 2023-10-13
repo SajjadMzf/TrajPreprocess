@@ -37,20 +37,25 @@ ordered_preprocess_functions: # 'all' means function is designed to be applied t
   - ['self.export_data()', 'all']
 # Columns to keep while they are not necessary matching
 unmatched_columns: 
-  - xCenter 
-  - yCenter
+
   
 # Match new dataset columns to highD columns in use for prediction model. None if there is no matchig
 matched_columns:
   # These are the columns essential for conversion: frame, id, x,y 
   FRAME: "frame"
   TRACK_ID: "trackId"
-  X: None
-  Y: None
-  X_VELOCITY: None #lonVelocity
-  Y_VELOCITY: None #latVelocity
-  X_ACCELERATION: None #lonAcceleration 
-  Y_ACCELERATION: None #latAcceleration
+  X: xCenter
+  Y: yCenter
+  X_VELOCITY: xVelocity #lonVelocity
+  Y_VELOCITY: yVelocity #latVelocity
+  X_ACCELERATION: xAcceleration #lonAcceleration 
+  Y_ACCELERATION: yAcceleration #latAcceleration
+  D: None #cross track
+  S: None #along track
+  D_VELOCITY: None
+  S_VELOCITY: None
+  D_ACCELERATION: None
+  S_ACCELERATION: None
   WIDTH: 'length'
   HEIGHT: 'width'
   PRECEDING_ID: None

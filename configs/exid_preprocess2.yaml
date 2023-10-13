@@ -7,7 +7,7 @@ dataset:
   lane_markings_yml_dir:  '../../Dataset/exiD-dataset-v2.0/maps/!lane_markings/2_aachen_brand.yaml'
   map_export_dir: '../../Dataset/exid/Maps/39-52.pickle'
   # in dataset with large number of data files, we use fileranges and filestring
-  fileranges: range(39,40) #range(39,53) 
+  fileranges: range(39,53) #range(39,53) 
   filestring: "{}_tracks.csv"
   dataset_fps: 25
   desired_fps: 5
@@ -31,7 +31,7 @@ ordered_preprocess_functions: # 'all' means function is designed to be applied t
   - ['exid.get_lane_ids', 'one']
   - ['ngsim.calc_vel_acc', 'one']
   - ['self.overwrite_data(source = "track")', 'all']
-  #- ['self.reduce_fps()', 'all']
+  - ['self.reduce_fps()', 'all']
   - ['exid.calc_svs_povl', 'one']
   - ['self.overwrite_data(source = "frame")', 'all']
   #- ['exid.visualise_tracks', 'one']
