@@ -1,11 +1,11 @@
 dataset:
   name: 'exid'
   description: '4_cologne_klettenberg'
-  import_dir: '../../Dataset/exiD-dataset-v2.0/data'
-  export_dir: '../../Dataset/exid/'
-  lanelet2_file_dir: '../../Dataset/exiD-dataset-v2.0/maps/lanelet2/4_cologne_klettenberg.osm'
-  lane_markings_yml_dir:  '../../Dataset/exiD-dataset-v2.0/maps/!lane_markings/4_cologne_klettenberg.yaml'
-  map_export_dir: '../../Dataset/exid/Maps/61-72.pickle'
+  import_dir: '../Datasets/exiD-dataset-v2.0/data'
+  export_dir: '../Datasets/exid/'
+  lanelet2_file_dir: '../Datasets/exiD-dataset-v2.0/maps/lanelet2/4_cologne_klettenberg.osm'
+  lane_markings_yml_dir:  '../Datasets/exiD-dataset-v2.0/maps/!lane_markings/4_cologne_klettenberg.yaml'
+  map_export_dir: '../Datasets/exid/Maps/61-72.pickle'
   # in dataset with large number of data files, we use fileranges and filestring
   fileranges: range(61,73) 
   filestring: "{}_tracks.csv"
@@ -36,12 +36,9 @@ ordered_preprocess_functions: # 'all' means function is designed to be applied t
   - ['self.overwrite_data(source = "frame")', 'all']
   - ['self.export_data()', 'all']
 
-# Columns to keep while they are not necessary matching
-unmatched_columns: 
 
-  
 # Match new dataset columns to highD columns in use for prediction model. None if there is no matchig
-matched_columns:
+columns:
   # These are the columns essential for conversion: frame, id, x,y 
   FRAME: "frame"
   TRACK_ID: "trackId"

@@ -2,10 +2,7 @@ import numpy as np
 from numpy.linalg import norm
 import math 
 import sys
-
-def frenet2cart(traj, ref):
-
-    return 0
+import pdb
 
 def cart2frenet(traj, ref):
     '''
@@ -13,6 +10,9 @@ def cart2frenet(traj, ref):
     ref = np array of size [L,2]
     '''
     #print('CART2FRENET') TODO: 1. extend gamma 2. test with crossing traj and ref
+    # assert there is no repeating points in ref and traj
+    assert(np.all(np.diff(ref,axis=0)!=0))
+    assert(np.all(np.diff(traj,axis=0)!=0))
     L = ref.shape[0]
     T = traj.shape[0]
     gamma = np.zeros((L)) 
@@ -31,6 +31,8 @@ def cart2frenet(traj, ref):
         traj_frenet[i,0] =  gamma[itr1] + np.dot(ref[itr2]-ref[itr1], traj[i]-ref[itr1])/norm(ref[itr2]-ref[itr1])
         traj_frenet[i,1] = np.cross(ref[itr2] - ref[itr1], traj[i] - ref[itr1])/norm(ref[itr2]-ref[itr1])
         #print('it:{}, it1:{}'.format(it,it1))
+        if np.isnan(traj_frenet[i,0]) or np.isnan(traj_frenet[i,1]):
+            pdb.set_trace()
     return traj_frenet
 
 

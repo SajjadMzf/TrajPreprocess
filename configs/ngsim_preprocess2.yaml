@@ -1,11 +1,13 @@
 dataset:
-  name: 'NGSIM'
-  import_dir: '../../Dataset/NGSIM/Raws'
-  export_dir: '../../Dataset/NGSIM/'
-  filenames: ['01.csv','02.csv','03.csv','04.csv','05.csv','06.csv']
+  name: 'NGSIM2'
+  import_dir: '../Datasets/NGSIM/Raws'
+  export_dir: '../Datasets/NGSIM/'
+  map_export_dir: '../Datasets/NGSIM/ngsim2.pickle'
+  dataset_fps: 10
+  desired_fps: 5
+  filenames: ['04.csv','05.csv','06.csv']
   us101: [False, False, False, True, True, True]
-  fps: 10
-visualisation:
+  lane_markings: [[],[],[],[],[],[]]
   image_width: 600 #in meters
   image_height: 100
   x_bias: 10
@@ -16,33 +18,32 @@ ordered_preprocess_functions:
   #['self.overwrite_data(source = 'df')', 'all']
   #- ['self.export_data()', 'all']
   #- ['self.import_processed_data()', 'all']
-  - ['ngsim.relocate_tracking_point' , 'single']
+  - ['self.match_columns()', 'all'] #Required
+  - ['self.initialise_df()', 'all'] #Required
+  - ['self.overwrite_data(source = "df")', 'all'] # Required
+  - ['ngsim.relocate_tracking_point' , 'one']
   - ['self.overwrite_data(source = "df")', 'all']
-  - ['ngsim.traj_smoothing', 'single']
-  - ['ngsim.calc_vel_acc', 'single']
-  #- ['ngsim.visualise_measurements', 'single']
+  - ['ngsim.traj_smoothing', 'one']
+  - ['ngsim.calc_vel_acc', 'one']
+  - ['ngsim.visualise_measurements', 'one']
   - ['self.overwrite_data(source = "track")', 'all']
-  - ['ngsim.estimate_lane_markings' , 'single']
-  - ['ngsim.update_lane_ids', 'single']
+  - ['ngsim.estimate_lane_markings' , 'all']
+  - ['ngsim.update_lane_ids', 'one']
   - ['self.overwrite_data(source = "track")', 'all']
-  - ['ngsim.calc_svs', 'single']
+  - ['ngsim.calc_svs', 'one']
   - ['self.overwrite_data(source = "frame")', 'all']
-  - ['ngsim.convert_units', 'single']
+  - ['ngsim.convert_units', 'one']
   - ['self.overwrite_data(source = "df")', 'all']
   - ['self.export_data()', 'all']
   #- ['self.import_processed_data()', 'all']
-  #- ['ngsim.visualise_tracks', 'single']
+  #- ['ngsim.visualise_tracks', 'one']
   - ['self.export_statics_metas()', 'all']
-meta_data:
-  lane_markings: [[],[],[],[],[],[]]
-# These are the columns essential for conversion: frame, id, x,y (in any coordinates/units)
-essential_columns:
+# Match new dataset columns to highD columns in use for prediction model. None if there is no matchig
+columns:
   FRAME: "Frame_ID"
   TRACK_ID: "Vehicle_ID"
   X: 'Local_Y'
   Y: 'Local_X'
-# Match new dataset columns to highD columns in use for prediction model. None if there is no matchig
-matched_columns:
   X_VELOCITY: None
   Y_VELOCITY: None
   X_ACCELERATION: None 

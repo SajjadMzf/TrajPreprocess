@@ -11,8 +11,9 @@ from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
 import cv2
 import random
+import time
 from pyproj import Proj
-from ngsim import get_svs_ids
+from dataset_func.ngsim import get_svs_ids
 from utils.utils_functions import interpolate_polyline, parametrise_polyline
 
 def calc_svs_mmntp(configs, df_itr,  df_data, tracks_data, frames_data):  
@@ -176,39 +177,36 @@ def visualise_tracks(configs,df_itr, df_data, tracks_data = None, frames_data = 
     lane_x_min = min([min(lane['l'][:,0]) for lane in lanes])
     
     bias = 10
-    tracks_dir = 'visualisations/exid'
-    if os.path.exists(tracks_dir) == False:
-        os.makedirs(tracks_dir)
     
-    if p.DELETE_PREV_VIS:
-        for filename in os.listdir(tracks_dir):
-            if 'File{}'.format(df_itr) in filename:
-                file_path = os.path.join(tracks_dir, filename)
-                try:
-                    if os.path.isfile(file_path) or os.path.islink(file_path):
-                        os.unlink(file_path)
-                    elif os.path.isdir(file_path):
-                        shutil.rmtree(file_path)
-                except Exception as e:
-                    print('Failed to delete %s. Reason: %s' % (file_path, e))
+    
+    vis_cdir = os.path.join(os.path.join(p.VIS_DIR, configs['dataset']['name']), 'tracks')
+    tracks_dir = os.path.join(vis_cdir, time.strftime("%Y%m%d_%H%M%S"))
+    if not os.path.exists(tracks_dir):
+        os.makedirs(tracks_dir)
         
     frame_itr_list = [frame[p.FRAME][0] for frame in frames_data]
     image_width = lane_x_max - lane_x_min
     image_height = lane_y_max+bias - lane_y_min
     print('image_width: {}, image_height: {}'.format(image_width*p.X_SCALE, image_height*p.Y_SCALE))
     
-    background_image = np.zeros(( int(image_height*p.Y_SCALE), int(image_width*p.X_SCALE), 3), dtype = np.uint8)
+    background_image = np.ones(( int(image_height*p.Y_SCALE), int(image_width*p.X_SCALE), 3), dtype = np.uint8)
+    # change color of background imag to warm white
+    background_image[:,:,0] = background_image[:,:,0]*250
+    background_image[:,:,1] = background_image[:,:,1]*250
+    background_image[:,:,2] = background_image[:,:,2]*255
     #print(background_image.shape)
     x_pos = lambda x: int((x -lane_x_min +bias/2)*p.X_SCALE)
     y_pos = lambda y: int((lane_y_max+bias/2- y)*p.Y_SCALE)
+    
     for lane in lanes:
             for itr in range(len(lane['r'])-1):
-                cv2.line(background_image, (x_pos(lane['r'][itr,0]), y_pos(lane['r'][itr,1])),(x_pos(lane['r'][itr+1,0]), y_pos(lane['r'][itr+1,1])), (0,255,0), thickness= 3)
+                cv2.line(background_image, (x_pos(lane['r'][itr,0]), y_pos(lane['r'][itr,1])),(x_pos(lane['r'][itr+1,0]), y_pos(lane['r'][itr+1,1])), (0,0,0), thickness= 3)
             for itr in range(len(lane['l'])-1):
-                cv2.line(background_image, (x_pos(lane['l'][itr,0]), y_pos(lane['l'][itr,1])),(x_pos(lane['l'][itr+1,0]), y_pos(lane['l'][itr+1,1])), (0,255,0), thickness= 3)
+                cv2.line(background_image, (x_pos(lane['l'][itr,0]), y_pos(lane['l'][itr,1])),(x_pos(lane['l'][itr+1,0]), y_pos(lane['l'][itr+1,1])), (0,0,0), thickness= 3)
         #print(i
     #print(int(image_width*p.X_SCALE))
-    cv2.imwrite(os.path.join(tracks_dir, 'lanes.png'), background_image)
+    if not cv2.imwrite(os.path.join(tracks_dir, 'lanes.png'), background_image):
+        raise Exception("Could not write image")
     #pdb.set_trace()
     total_vis = min(p.VISUALISATION_COUNT, len(tracks_data))
     track_itrs = range(total_vis)#random.sample(range(len(tracks_data)),len(tracks_data))[:total_vis]
@@ -227,20 +225,21 @@ def visualise_tracks(configs,df_itr, df_data, tracks_data = None, frames_data = 
                     lane_id = int(frame_data[p.LANE_ID][track_itr])
                     if track_id == tv_id:
                         text = 'TV:{}'.format(lane_id)
-                        v_color = (255,51,51)
+                        v_color = (235,206,135)
                     elif track_id in sv_ids[fr_itr]:
                         text = '{}:{}:{}'.format(p.SV_IDS_ABBR[np.argwhere(sv_ids[fr_itr]==track_id)[0][0]],lane_id, int(track_id))
-                        v_color = (255,51,51)
+                        v_color = (235,206,135)
                     else:
                         text = 'NV:{}:{}'.format(lane_id,int(track_id))
-                        v_color = (0,255,0)
+                        v_color = (210,210,210)
                     image = vf.plot_vehicle(image, 
                                         (x_pos(frame_data[X_][track_itr]), y_pos(frame_data[Y_][track_itr])), 
                                         (frame_data[p.WIDTH][track_itr]*p.X_SCALE,frame_data[p.HEIGHT][track_itr]*p.Y_SCALE),
                                         v_color,
                                         text,
-                                        (0,0,255),
-                                        circle
+                                        (0,0,0),
+                                        circle,
+                                        font_scale=p.FONT_SCALE
                                         )
                 cv2.imwrite(os.path.join(tracks_dir, 'File{}_TV{}_FR{}.png'.format(df_itr,tv_id, frame)), image)
     
@@ -356,7 +355,13 @@ def convert2frenet(configs,df_itr, df_data, tracks_data = None, frames_data = No
             fig5, ax5 = plt.subplots()
             ax5.plot(np.arange(0,len(tracks_data[id][p.Y_VELOCITY])),tracks_data[id][p.X_VELOCITY], '*')
             
-
+            fig6, ax6 = plt.subplots()
+            # plot lane_nodes
+            for i in range(len(lane_nodes)):
+                ax6.plot(lane_nodes[i]['l'][:,0], lane_nodes[i]['l'][:,1], '*')
+                ax6.plot(lane_nodes[i]['r'][:,0], lane_nodes[i]['r'][:,1], '*')
+            # plot traj
+            ax6.plot(tracks_data[id][p.X],tracks_data[id][p.Y], '*')
             #fig6, ax6 = plt.subplots()
             #ax6.plot(frenet_ref[:,0],frenet_ref[:,1], '*')
             
@@ -369,7 +374,8 @@ def convert2frenet(configs,df_itr, df_data, tracks_data = None, frames_data = No
 
 
 def plot_traj(configs, df_itr, df_data, tracks_data = None, frames_data = None, plot_velocity = True):
-    # compute p.X p.Y
+  
+    
     with open(configs['dataset']['map_export_dir'], 'rb') as handle:
         lane_marking_dict = pickle.load(handle)
     lane_nodes = lane_marking_dict['lane_nodes']
@@ -380,21 +386,21 @@ def plot_traj(configs, df_itr, df_data, tracks_data = None, frames_data = None, 
     #fig4, ax4 = plt.subplots()
 
     for i in range(len(lane_nodes)):
-            ax1.plot(lane_nodes_f[i]['l'][:,0], lane_nodes_f[i]['l'][:,1], '*')
-            ax1.plot(lane_nodes_f[i]['r'][:,0], lane_nodes_f[i]['r'][:,1], '*')
+            ax1.plot(lane_nodes_f[i]['l'][:,0], lane_nodes_f[i]['l'][:,1], 'k')
+            ax1.plot(lane_nodes_f[i]['r'][:,0], lane_nodes_f[i]['r'][:,1], 'k')
     #    
     #for i in range(len(lane_nodes)):
     #        ax2.plot(lane_nodes[i]['l'][:,0], lane_nodes[i]['l'][:,1], '*')
     #        ax2.plot(lane_nodes[i]['r'][:,0], lane_nodes[i]['r'][:,1], '*')
             
     for id, track_data in enumerate(tracks_data):
-        if id>3:
+        if id>10:
             break
         ax1.plot(tracks_data[id][p.S], tracks_data[id][p.D], '.')
         array_size = len(tracks_data[id][p.S])
         dx = tracks_data[id][p.S_VELOCITY][0]*np.arange(array_size)*configs['dataset']['desired_fps']
         dy = tracks_data[id][p.D_VELOCITY][0]*np.arange(array_size)*configs['dataset']['desired_fps']
-        ax1.plot(tracks_data[id][p.S][0]+dx, tracks_data[id][p.D][0]+dy, '.')
+        #ax1.plot(tracks_data[id][p.S][0]+dx, tracks_data[id][p.D][0]+dy, '.')
         
         if plot_velocity:
             ax1.quiver(tracks_data[id][p.S], tracks_data[id][p.D], tracks_data[id][p.S_VELOCITY], tracks_data[id][p.D_VELOCITY], width = 0.001, angles='xy', scale_units='xy')

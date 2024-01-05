@@ -1,13 +1,11 @@
 dataset:
   name: 'highd'
   description: 'N/A'
-  import_dir: '../../Dataset/HighD/Tracks'
-  meta_dir: '../.../Dataset/HighD/Metas'
-  statics_dir: '../../Dataset/HighD/Statics'
-  export_dir: '../../Dataset/highd_processed/'
-  map_export_dir: '../../Dataset/highd_processed'
-  
-  # in dataset with large number of data files, we use fileranges and filestring
+  import_dir: '../Dataset/HighD/Tracks'
+  meta_dir: '.../Dataset/HighD/Metas'
+  statics_dir: '../Dataset/HighD/Statics'
+  export_dir: '../Dataset/highd_processed/'
+  map_export_dir: '../Dataset/highd_processed'
   fileranges: list(range(1,61)) #61
   filestring: "{}_tracks.csv"
   meta_file: "{}_recordingMeta.csv"
@@ -32,11 +30,9 @@ ordered_preprocess_functions: # 'all' means function is designed to be applied t
   - ['exid.calc_svs_povl', 'one']
   - ['self.overwrite_data(source = "frame")', 'all']
   - ['self.export_data()', 'all']
-# Columns to keep while they are not necessary matching
-unmatched_columns: 
   
 # Match new dataset columns to highD columns in use for prediction model. None if there is no matchig
-matched_columns:
+columns:
   # These are the columns essential for conversion: frame, id, x,y 
   FRAME: "frame"
   TRACK_ID: "id"

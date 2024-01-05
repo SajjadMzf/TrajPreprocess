@@ -1,19 +1,15 @@
 dataset:
-  name: 'exid'
-  description: '3_bergheim_roemer'
-  import_dir: '../Datasets/exiD-dataset-v2.0/data'
-  export_dir: '../Datasets/exid/'
-  lanelet2_file_dir: '../Datasets/exiD-dataset-v2.0/maps/lanelet2/3_bergheim_roemer.osm'
-  lane_markings_yml_dir:  '../Datasets/exiD-dataset-v2.0/maps/!lane_markings/3_bergheim_roemer.yaml'
-  map_export_dir: '../Datasets/exid/Maps/53-60.pickle'
+  name: 'm40j15'
+  description: 'N/A'
+  import_dir: '../Datasets/m40j15/raw'
+  export_dir: '../Datasets/m40j15/processed'
+  map_import_dir: '../Datasets/m40j15/maps/j15.npy'
+  map_export_dir: '../Datasets/m40j15/maps/j15_lms.yaml'
   # in dataset with large number of data files, we use fileranges and filestring
-  fileranges: range(53,61) 
-  filestring: "{}_tracks.csv"
-  dataset_fps: 25
+  fileranges: range(1,19) #range(1,19) 
+  filestring: "Tracked_{}.csv"
+  dataset_fps: 10
   desired_fps: 5
-  UTMZone: '32U'
-  xUtmOrigin: 334905.3 # lon 50.93705
-  yUtmOrigin: 5645453.9 # lat 6.650248
 ordered_preprocess_functions: # 'all' means function is designed to be applied to all data files, 'one' means it should be iterated on each data files.
   # Utility functtions:
   ##- ['self.export_data()', 'all'] # optional
@@ -26,7 +22,10 @@ ordered_preprocess_functions: # 'all' means function is designed to be applied t
   - ['self.match_columns()', 'all']
   - ['self.initialise_df()', 'all']
   - ['self.overwrite_data(source = "df")', 'all']
-  - ['exid.hdmaps2lane_markings', 'all'] 
+  - ['m40.m40_preprocess', 'one']
+  - ['self.overwrite_data(source = "df")', 'all']
+  - ['m40.filter_bboxes', 'one']
+  - ['m40.extract_lms', 'all'] 
   - ['exid.convert2frenet', 'one']
   - ['exid.get_lane_ids', 'one']
   - ['ngsim.calc_vel_acc', 'one']
@@ -34,28 +33,32 @@ ordered_preprocess_functions: # 'all' means function is designed to be applied t
   - ['self.reduce_fps()', 'all']
   - ['exid.calc_svs_povl', 'one']
   - ['self.overwrite_data(source = "frame")', 'all']
+  - ['exid.visualise_tracks', 'one']
+  #- ['exid.plot_traj', 'one']
+  - ['m40.visualise_measurements', 'one']
   - ['self.export_data()', 'all']
+  
 
- 
 # Match new dataset columns to highD columns in use for prediction model. None if there is no matchig
 columns:
   # These are the columns essential for conversion: frame, id, x,y 
-  FRAME: "frame"
-  TRACK_ID: "trackId"
-  X: xCenter
-  Y: yCenter
-  X_VELOCITY: xVelocity #lonVelocity
-  Y_VELOCITY: yVelocity #latVelocity
-  X_ACCELERATION: xAcceleration #lonAcceleration 
-  Y_ACCELERATION: yAcceleration #latAcceleration
+  FRAME: 'time'
+  TRACK_ID: 'id'
+  X: 'x'
+  Y: 'y'
+  X_VELOCITY: 'vx' #lonVelocity
+  Y_VELOCITY: 'vy' #latVelocity
+  X_ACCELERATION: 'ax' #lonAcceleration 
+  Y_ACCELERATION: 'ay' #latAcceleration
   D: None #cross track
   S: None #along track
   D_VELOCITY: None
   S_VELOCITY: None
   D_ACCELERATION: None
   S_ACCELERATION: None
-  WIDTH: 'length'
-  HEIGHT: 'width'
+  WIDTH: 'bbx'
+  HEIGHT: 'bby'
+  HEADING: None
   PRECEDING_ID: None
   FOLLOWING_ID: None
   LEFT_VEHICLE1_ID: None

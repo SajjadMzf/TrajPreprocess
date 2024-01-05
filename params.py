@@ -1,12 +1,12 @@
 DEBUG_MODE = False
-
-DELETE_PREV_VIS = False
+VIS_DIR = './visualisation/'
+VISUALISATION_COUNT = 5
 VISUALISE_FRENET = True
 #Visualisation parameters:
-VISUALISATION_COUNT = 5
+
 X_SCALE = 10
-Y_SCALE = 10
-FONT_SCALE = 0.25
+Y_SCALE = 50
+FONT_SCALE = 2
 
 measurement_dir = 'visualisations/measurements'
 tracks_dir = 'visualisations/tracks'

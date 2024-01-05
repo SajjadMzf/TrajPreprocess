@@ -7,6 +7,8 @@ from matplotlib import gridspec
 import os, shutil
 import cv2
 import pdb
+import time
+import pickle
 def relocate_tracking_point(configs,itr, df_data, tracks_data = None, frames_data = None):
     df_data[p.X] = df_data[p.X]- df_data[p.WIDTH]/2
     return {'configs': None, 'df': df_data, 'tracks_data': None,'frames_data': None}
@@ -20,34 +22,42 @@ def traj_smoothing(configs,itr,  df_data, tracks_data, frames_data):
     
     return {'configs': None, 'df': None, 'tracks_data': tracks_data,'frames_data': None}
 
-def calc_vel_acc(configs,df_itr,  df_data, tracks_data, frames_data):
-    for itr, track_data in enumerate(tracks_data):
-        x_velo = digital_filter(track_data[p.X], np.array([-2,-1,0,1,2]), 10)*configs['dataset']['dataset_fps']
-        y_velo = digital_filter(track_data[p.Y], np.array([-2,-1,0,1,2]), 10)*configs['dataset']['dataset_fps']
-        x_acc = digital_filter(x_velo, np.array([-2,-1,0,1,2]), 10)*configs['dataset']['dataset_fps']
-        y_acc = digital_filter(y_velo, np.array([-2,-1,0,1,2]), 10)*configs['dataset']['dataset_fps']
-                
-        tracks_data[itr][p.X_VELOCITY] = x_velo
-        tracks_data[itr][p.Y_VELOCITY] = y_velo
-        tracks_data[itr][p.X_ACCELERATION] = x_acc
-        tracks_data[itr][p.Y_ACCELERATION] = y_acc
+def calc_vel_acc(configs,df_itr,  df_data, tracks_data, frames_data, frenet = True):
+    if frenet:
+        for itr, track_data in enumerate(tracks_data):
+            x_velo = digital_filter(track_data[p.S], np.array([-2,-1,0,1,2]), 10)*configs['dataset']['dataset_fps']
+            y_velo = digital_filter(track_data[p.D], np.array([-2,-1,0,1,2]), 10)*configs['dataset']['dataset_fps']
+            x_acc = digital_filter(x_velo, np.array([-2,-1,0,1,2]), 10)*configs['dataset']['dataset_fps']
+            y_acc = digital_filter(y_velo, np.array([-2,-1,0,1,2]), 10)*configs['dataset']['dataset_fps']
+                    
+            tracks_data[itr][p.S_VELOCITY] = x_velo
+            tracks_data[itr][p.D_VELOCITY] = y_velo
+            tracks_data[itr][p.S_ACCELERATION] = x_acc
+            tracks_data[itr][p.D_ACCELERATION] = y_acc
+
+    else:
+        for itr, track_data in enumerate(tracks_data):
+            x_velo = digital_filter(track_data[p.X], np.array([-2,-1,0,1,2]), 10)*configs['dataset']['dataset_fps']
+            y_velo = digital_filter(track_data[p.Y], np.array([-2,-1,0,1,2]), 10)*configs['dataset']['dataset_fps']
+            x_acc = digital_filter(x_velo, np.array([-2,-1,0,1,2]), 10)*configs['dataset']['dataset_fps']
+            y_acc = digital_filter(y_velo, np.array([-2,-1,0,1,2]), 10)*configs['dataset']['dataset_fps']
+                    
+            tracks_data[itr][p.X_VELOCITY] = x_velo
+            tracks_data[itr][p.Y_VELOCITY] = y_velo
+            tracks_data[itr][p.X_ACCELERATION] = x_acc
+            tracks_data[itr][p.Y_ACCELERATION] = y_acc
 
     return {'configs': None, 'df': None, 'tracks_data': tracks_data,'frames_data': None}
 
-def visualise_measurements(configs,itr,  df_data, tracks_data, frames_data):
-    for filename in os.listdir(p.measurement_dir):
-        file_path = os.path.join(p.measurement_dir, filename)
-        try:
-            if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.unlink(file_path)
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)
-        except Exception as e:
-            print('Failed to delete %s. Reason: %s' % (file_path, e))
-    
-    total_vis = min(p.VISUALISATION_COUNT, len(tracks_data))
-    track_itrs = random.sample(range(len(tracks_data)),len(tracks_data))[:total_vis]
-    fps = configs['dataset']['fps']
+def visualise_measurements(configs,itr,  df_data, tracks_data, frames_data, vis_count =10):
+   
+    vis_cdir = os.path.join(os.path.join(p.VIS_DIR, configs['dataset']['name']), 'measurements')
+    vis_cdir = os.path.join(vis_cdir, time.strftime("%Y%m%d_%H%M%S"))
+    if not os.path.exists(vis_cdir):
+        os.makedirs(vis_cdir)
+    vis_count = min(vis_count, len(tracks_data))
+    track_itrs = random.sample(range(len(tracks_data)),len(tracks_data))[:vis_count]
+    fps = configs['dataset']['dataset_fps']
     for itr in track_itrs:
         x = tracks_data[itr][p.X_RAW]
         y = tracks_data[itr][p.Y_RAW]
@@ -88,7 +98,7 @@ def visualise_measurements(configs,itr,  df_data, tracks_data, frames_data):
         for i in range(6):
             axes[i].grid(True)
             axes[i].set_xlabel('Time(s)')
-        plt.savefig(os.path.join(p.measurement_dir, '{}.png'.format(int(tracks_data[itr][p.TRACK_ID][0]))))    
+        plt.savefig(os.path.join(vis_cdir, '{}_{}.png'.format(itr,int(tracks_data[itr][p.TRACK_ID][0]))))    
         plt.close(fig)
 
     return {'configs': None, 'df': None, 'tracks_data': None,'frames_data': None}
@@ -99,31 +109,56 @@ def unit_convertion(df):
 
 
 def estimate_lane_markings(configs,df_itr,  df_data, tracks_data, frames_data):
+    # estimate lane marking based on given lane ids and y values
     #lane_markings
-    max_lane = int(df_data[p.LANE_ID].max())
+    max_lane = max([int(df_data_[p.LANE_ID].max()) for df_data_ in df_data])
     lane_markings = np.zeros((max_lane+2))
-    average_y = np.zeros((max_lane))
-    for lane_id in range(1, max_lane+1):
-        average_y[lane_id-1] = np.mean(df_data[df_data[p.LANE_ID]==lane_id][p.Y])
-    min_y = df_data[p.Y].min()
-    max_y = df_data[p.Y].max()
-    min_x = df_data[p.X].min()
-    max_x = df_data[p.X].max()
+    # list of average y per lane for each df
+    average_y = []
+    # list of count of data per lane for each df
+    count_y = []
+    average_y_i = np.zeros((max_lane))
+    count_y_i = np.zeros((max_lane))
+    for df_data_ in df_data:
+        for lane_id in range(1, max_lane+1):
+            average_y_i[lane_id-1] = np.mean(df_data_[df_data_[p.LANE_ID]==lane_id][p.Y].to_numpy())
+            count_y_i[lane_id-1] = df_data_[df_data_[p.LANE_ID]==lane_id][p.Y].to_numpy().shape[0]
+        average_y.append(average_y_i)
+        count_y.append(count_y_i)
+    
+    # average y per lane for all dfs    
+    average_y_ws = np.zeros((max_lane))
+    # count of data per lane for all dfs
+    count_y_s = np.zeros((max_lane))
+    for lane_itr in range(0, max_lane):
+        count_y_s[lane_itr] = sum([count_y_[lane_itr] for count_y_ in count_y])
+    
+    for i in range(len(count_y)):
+        for lane_itr in range(0, max_lane):
+            average_y_ws[lane_itr] += (average_y[i][lane_itr]*count_y[i][lane_itr])/count_y_s[lane_itr]
+    
+    # estimate lane markings based on average y per lane for all dfs    
     for lane_itr in range(1, max_lane):
-        lane_markings[lane_itr] = average_y[lane_itr-1] + (average_y[lane_itr] - average_y[lane_itr-1])/2
+        lane_markings[lane_itr] = average_y_ws[lane_itr-1] + (average_y_ws[lane_itr] - average_y_ws[lane_itr-1])/2
+    
     lane_markings[0] = 2*lane_markings[1] - lane_markings[2] #min(2*lane_markings[1] - lane_markings[2], min_y)
     lane_markings[-2] = 2*lane_markings[-3] - lane_markings [-4] #max(2*lane_markings[-3] - lane_markings [-4], max_y)
     lane_markings[-1] = lane_markings[-2] + (lane_markings[-3]- lane_markings[-4])
-    print('min_x:{},\n max_x:{},\n'.format(min_x, max_x))
-    print('min_y:{},\n max_y:{},\n lane_markings:{}'.format(min_y, max_y,lane_markings))
-    configs['meta_data']['lane_markings'][df_itr] = lane_markings
-    return {'configs': configs, 'df': None, 'tracks_data': None,'frames_data': None}
-
-def update_lane_ids(configs,df_itr,  df_data, tracks_data, frames_data):
     
+    with open(configs['dataset']['map_export_dir'], 'wb') as handle:
+        pickle.dump(lane_markings, handle, protocol = pickle.HIGHEST_PROTOCOL)
+
+    configs['dataset']['lane_markings'] = lane_markings
+    print(lane_markings)
+    return {'configs': configs, 'df': None, 'tracks_data': None,'frames_data': None}
+ 
+def update_lane_ids(configs,df_itr,  df_data, tracks_data, frames_data):
+    # update lane ids based on estimated lane markings
+    #inner lane violation count
     olv_c = 0
+    #outer lane violation count
     ilv_c = 0
-    lane_markings = configs['meta_data']['lane_markings'][df_itr]
+    lane_markings = configs['dataset']['lane_markings']
     lane_update_ratio = 0
     for track_itr, track_data in enumerate(tracks_data):
         total_frames = len(track_data[p.X])
@@ -146,8 +181,7 @@ def update_lane_ids(configs,df_itr,  df_data, tracks_data, frames_data):
     print('DF Itr: {}. Lane Update Ratio:{}, Outer lane violation counts (classified as lane max): {}, Inner lane violation counts (classified as lane min): {}'.format(df_itr, lane_update_ratio, olv_c, ilv_c))
     return {'configs': None, 'df': None, 'tracks_data': tracks_data,'frames_data': None}
 
-def calc_svs(configs, df_itr,  df_data, tracks_data, frames_data):
-    pdb.set_trace()   
+def calc_svs(configs, df_itr,  df_data, tracks_data, frames_data):  
     for frame_itr, frame_data in enumerate(frames_data):
         for track_itr, track_id in enumerate(frame_data[p.TRACK_ID]):
             lane_id = frame_data[p.LANE_ID][frame_data[p.TRACK_ID] == track_id]
@@ -207,11 +241,11 @@ def calc_svs(configs, df_itr,  df_data, tracks_data, frames_data):
 
 def convert_units(configs,df_itr,  df_data, tracks_data, frame_data):
     FOOT2METER = 0.3048
-    lane_markings = configs['meta_data']['lane_markings']
+    lane_markings = configs['dataset']['lane_markings']
     #print(lane_markings[0])
     #print(lane_markings)
     lane_markings[df_itr] = lane_markings[df_itr]*FOOT2METER 
-    configs['meta_data']['lane_markings'] = lane_markings
+    configs['dataset']['lane_markings'] = lane_markings
     df_data[p.X] = df_data[p.X].apply(lambda x: x*FOOT2METER)
     df_data[p.Y] = df_data[p.Y].apply(lambda x: x*FOOT2METER)
     df_data[p.WIDTH] = df_data[p.WIDTH].apply(lambda x: x*FOOT2METER)
@@ -225,28 +259,36 @@ def convert_units(configs,df_itr,  df_data, tracks_data, frame_data):
 
 
 def visualise_tracks(configs,df_itr,  df_data, tracks_data, frames_data):
-    x_bias = configs['visualisation']['x_bias']
-    y_bias = configs['visualisation']['y_bias']
-    lane_markings = [-0.3991832068562266, 3.300408440899772, 7.000000088655771, 10.707917576951486,14.479769440085882, 18.369294269581566, 22.682077437497007, 26.994860605412452, 31.307643773327893]#configs['meta_data']['lane_markings'][df_itr]
     
-    for filename in os.listdir(p.tracks_dir):
-        if 'File{}'.format(df_itr) in filename:
-            file_path = os.path.join(p.tracks_dir, filename)
-            try:
-                if os.path.isfile(file_path) or os.path.islink(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path):
-                    shutil.rmtree(file_path)
-            except Exception as e:
-                print('Failed to delete %s. Reason: %s' % (file_path, e))
+    
+    x_bias = configs['dataset']['x_bias']
+    y_bias = configs['dataset']['y_bias']
+    with open(configs['dataset']['map_export_dir'], 'rb') as handle:
+        lane_marking_dict = pickle.load(handle)
+    #lane_markings = [-0.3991832068562266, 3.300408440899772, 7.000000088655771, 10.707917576951486,14.479769440085882, 18.369294269581566, 22.682077437497007, 26.994860605412452, 31.307643773327893]#configs['meta_data']['lane_markings'][df_itr]
+    vis_cdir = os.path.join(os.path.join(p.VIS_DIR, configs['dataset']['name']), 'tracks')
+    vis_cdir = os.path.join(vis_cdir, time.strftime("%Y%m%d_%H%M%S"))
+    if not os.path.exists(vis_cdir):
+        os.makedirs(vis_cdir)
     
     frame_itr_list = [frame[p.FRAME][0] for frame in frames_data]
-    image_height = configs['visualisation']['image_height']
-    image_width = configs['visualisation']['image_width']
+    image_height = configs['dataset']['image_height']
+    image_width = configs['dataset']['image_width']
     background_image = np.zeros(( image_height*p.Y_SCALE, image_width*p.X_SCALE, 3), dtype = np.uint8)
     #print(background_image.shape)
-    for lane_marking in lane_markings:
-            cv2.line(background_image, (0, int(lane_marking*p.Y_SCALE)),(int(image_width*p.X_SCALE), int(lane_marking*p.Y_SCALE)), (0,255,0), thickness= p.LINE_THICKNESS)
+    x_pos = lambda x:x
+    y_pos = lambda x:x
+    if isinstance(lane_marking_dict, dict):
+        for lane in lane_marking_dict:
+                for itr in range(len(lane['r'])-1):
+                    cv2.line(background_image, (x_pos(lane['r'][itr,0]), y_pos(lane['r'][itr,1])),(x_pos(lane['r'][itr+1,0]), y_pos(lane['r'][itr+1,1])), (0,255,0), thickness= 3)
+                for itr in range(len(lane['l'])-1):
+                    cv2.line(background_image, (x_pos(lane['l'][itr,0]), y_pos(lane['l'][itr,1])),(x_pos(lane['l'][itr+1,0]), y_pos(lane['l'][itr+1,1])), (0,255,0), thickness= 3)
+    elif isinstance(lane_marking_dict, np.ndarray):
+        for itr in range(len(lane_marking_dict)-1):
+            cv2.line(background_image, (0, int((lane_marking_dict[itr]+y_bias)*p.Y_SCALE)),(image_width, int((lane_marking_dict[itr]+y_bias)*p.Y_SCALE)), (0,255,0), thickness= 3)
+    else:
+        raise ValueError('lane_marking_dict should be either a dictionary or a numpy array')
     #print(int(image_width*p.X_SCALE))
     total_vis = min(p.VISUALISATION_COUNT, len(tracks_data))
     track_itrs = random.sample(range(len(tracks_data)),len(tracks_data))[:total_vis]
@@ -278,7 +320,7 @@ def visualise_tracks(configs,df_itr,  df_data, tracks_data, frames_data):
                                         text,
                                         (0,0,255)
                                         )
-                cv2.imwrite(os.path.join(p.tracks_dir, 'File{}_TV{}_FR{}.png'.format(df_itr,tv_id, frame)), image)
+                cv2.imwrite(os.path.join(vis_cdir, 'File{}_TV{}_FR{}.png'.format(df_itr,tv_id, frame)), image)
 
     return {'configs': None, 'df': None, 'tracks_data': None,'frames_data': None}
 

@@ -1,11 +1,11 @@
 dataset:
   name: 'exid'
   description: '6_merzenich_rather'
-  import_dir: '../../Dataset/exiD-dataset-v2.0/data'
-  export_dir: '../../Dataset/exid/'
-  lanelet2_file_dir: '../../Dataset/exiD-dataset-v2.0/maps/lanelet2/6_merzenich_rather.osm'
-  lane_markings_yml_dir:  '../../Dataset/exiD-dataset-v2.0/maps/!lane_markings/6_merzenich_rather.yaml'
-  map_export_dir: '../../Dataset/exid/Maps/78-92.pickle'
+  import_dir: '../Datasets/exiD-dataset-v2.0/data'
+  export_dir: '../Datasets/exid/'
+  map_export_dir: '../Datasets/exid/Maps/78-92.pickle'
+  lanelet2_file_dir: '../Datasets/exiD-dataset-v2.0/maps/lanelet2/6_merzenich_rather.osm'
+  lane_markings_yml_dir:  '../Datasets/exiD-dataset-v2.0/maps/!lane_markings/6_merzenich_rather.yaml'
   # in dataset with large number of data files, we use fileranges and filestring
   fileranges: range(78,93) 
   filestring: "{}_tracks.csv"
@@ -35,12 +35,9 @@ ordered_preprocess_functions: # 'all' means function is designed to be applied t
   - ['exid.calc_svs_povl', 'one']
   - ['self.overwrite_data(source = "frame")', 'all']
   - ['self.export_data()', 'all']
-# Columns to keep while they are not necessary matching
-unmatched_columns: 
-
   
 # Match new dataset columns to highD columns in use for prediction model. None if there is no matchig
-matched_columns:
+columns:
   # These are the columns essential for conversion: frame, id, x,y 
   FRAME: "frame"
   TRACK_ID: "trackId"

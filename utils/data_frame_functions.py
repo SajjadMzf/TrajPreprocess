@@ -1,13 +1,12 @@
 import numpy as np
 import params as p 
 import pandas as pd
-
+import pdb
 def group_df(df, by):
     
-    grouped = df.groupby([by], sort = True)
+    grouped = df.groupby(by, sort = True)
     current_group = 0
     groups = [None] * grouped.ngroups
-
     for group_id, rows in grouped:
         groups[current_group] = {}
         for column in df.columns:

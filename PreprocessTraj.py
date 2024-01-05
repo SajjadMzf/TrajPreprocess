@@ -9,9 +9,10 @@ import params as p
 from utils.data_frame_functions import group_df, group2df
 import utils.coordinate_functions as cf
 from time import time
-import ngsim, exid, highd
+import dataset_func.ngsim as ngsim, dataset_func.exid as exid, dataset_func.highd as highd, dataset_func.m40 as m40
 import argparse
 import pdb 
+from pathlib import Path
 
 # From ID,Frame,X,Y to xVelocity, yVelocity, xAcceleration, yAcceleration, SVs_ID
 class PreprocessTraj():
@@ -29,7 +30,10 @@ class PreprocessTraj():
             string_format = self.configs['dataset']['filestring']
             file_ranges = []
             for i in eval(self.configs['dataset']['fileranges']):
-                file_ranges.append(str(i).zfill(2))
+                if 'm40' in self.configs['dataset']['name']:
+                    file_ranges.append(str(i))
+                else:
+                    file_ranges.append(str(i).zfill(2))
                 self.data_files.append(string_format.format(file_ranges[-1]))
         self.frame_dirs = []
         self.track_dirs = []
@@ -45,10 +49,11 @@ class PreprocessTraj():
         df_dir = os.path.join(self.configs['dataset']['export_dir'], p.DF_SAVE_DIR)
         if os.path.exists(df_dir) == False:
             os.makedirs(df_dir)
-        map_dir = '/'.join(self.configs['dataset']['map_export_dir'].split('/')[:-1])
-        if os.path.exists(map_dir) == False:
-            os.makedirs(map_dir)
-
+        map_export_dir = '/'.join(self.configs['dataset']['map_export_dir'].split('/')[:-1])
+        if os.path.exists(map_export_dir) == False:
+            os.makedirs(map_export_dir)
+        if os.path.exists(p.VIS_DIR) == False:
+            os.makedirs(p.VIS_DIR)
         for i ,data_file in enumerate(self.data_files):
             if 'filenames' in self.configs['dataset']:
                 frame_file = ''.join(data_file.split('.')[0:-1])+ '_frames.pickle'
@@ -77,7 +82,7 @@ class PreprocessTraj():
                 else:
                     print('{}. {} of all files'.format(func_itr+1, func_str.split('.')[1].split('(')[0]))
                     start = time()
-                    res_df = eval(func_str)(self.configs,None, self.df_data_list, self.track_data_list, self.frame_data_list)
+                    res_df = eval(func_str)(self.configs, None, self.df_data_list, self.track_data_list, self.frame_data_list)
                     if res_df['df'] is not None:
                         self.df_data_list = res_df['df']
                     if res_df['tracks_data'] is not None:
@@ -93,7 +98,7 @@ class PreprocessTraj():
                 for itr, df_data in enumerate(self.df_data_list):
                     print('{}.{}. {} of file {}'.format(func_itr+1,itr+1, func_str.split('.')[1].split('(')[0],self.data_files[itr]))
                     start = time()
-                    
+                    #pdb.set_trace()
                     res_df = eval(func_str)(self.configs,itr, df_data, self.track_data_list[itr], self.frame_data_list[itr])
                     if res_df['df'] is not None:
                         self.df_data_list[itr] = res_df['df']
@@ -112,9 +117,9 @@ class PreprocessTraj():
             self.output_columns = []
             matched_input_columns = []
             matched_output_columns = []
-            unmatched_input_columns = self.configs['unmatched_columns']
+            unmatched_input_columns = []
             self.unmatched_output_columns = []
-            for key, value in self.configs['matched_columns'].items():
+            for key, value in self.configs['columns'].items():
                 self.output_columns.append(eval('p.{}'.format(key)))
                 if value != 'None':
                     matched_input_columns.append(value)
@@ -135,7 +140,7 @@ class PreprocessTraj():
         for file_itr, data_file_cdir in enumerate(data_files_cdir):
             print('Importing df file: {}.'.format(data_file_cdir))
             df = pd.read_csv(data_file_cdir)
-            df = df[list(self.output2input.values())]
+            df = df[[*self.output2input.values()]]
             df = df.rename(columns = self.input2output)
             for empty_column in self.unmatched_output_columns:
                 df[empty_column] = (np.ones((df.shape[0]))*-1).tolist()
@@ -144,8 +149,17 @@ class PreprocessTraj():
 
     def reduce_fps(self):
         fps_div = int(self.configs['dataset']['dataset_fps']/self.configs['dataset']['desired_fps'])
+        if fps_div < 1:
+            raise(ValueError('Invalid fps division'))
+        print('Reducing fps by factor of {}'.format(fps_div))
         for file_itr, frame_data in enumerate(self.frame_data_list):
-            self.frame_data_list[file_itr] = frame_data[0:-1:fps_div]
+            frame_list = [data[p.FRAME][0] for data in frame_data]
+            #check frames are sequential
+            frame_list = np.array(frame_list)
+            if np.all(np.diff(frame_list)==1) == False:
+                print('Warning: Frames are not sequential!')
+            
+            self.frame_data_list[file_itr] = frame_data[0::fps_div]
 
 
 
@@ -270,24 +284,22 @@ class PreprocessTraj():
       
 
 if __name__ == '__main__':
-    #parser = argparse.ArgumentParser()
-    #parser.add_argument('config_file', type=str)
-    #args = parser.parse_args()
-    '''
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-c','--config_file', type=Path, required=True, help='Path to config file')
+    args = parser.parse_args()
+    
     preprocess = PreprocessTraj(
-            #args.config_file,
-            'configs/highd_preprocess.yaml',
+            args.config_file,
             'configs/constants.yaml'
         )
     preprocess.dataset_specific_preprocess()
     
-    exit()
-    '''
-    for i in [2,3,4,6]:
-        preprocess = PreprocessTraj(
-            #args.config_file,
-            'configs/exid_preprocess{}.yaml'.format(i),
-            'configs/constants.yaml'
-        )
-        preprocess.dataset_specific_preprocess()
+    
+    # for i in [2,3,4,6]:
+    #     preprocess = PreprocessTraj(
+    #         #args.config_file,
+    #         'configs/exid_preprocess{}.yaml'.format(i),
+    #         'configs/constants.yaml'
+    #     )
+    #     preprocess.dataset_specific_preprocess()
     
