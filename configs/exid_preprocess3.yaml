@@ -11,7 +11,7 @@ dataset:
   filestring: "{}_tracks.csv"
   dataset_fps: 25
   desired_fps: 5
-  UTMZone: '32U'
+  UTMZone: '32'
   xUtmOrigin: 334905.3 # lon 50.93705
   yUtmOrigin: 5645453.9 # lat 6.650248
 ordered_preprocess_functions: # 'all' means function is designed to be applied to all data files, 'one' means it should be iterated on each data files.
