@@ -56,7 +56,7 @@ The framework comes with some pre-defined common preprocess functions in Preproc
 ### 4. Run!
 Run the framework using:
 ```shell
-python3 PreprocessTraj.py CONFIG_FILE_DIR
+python3 PreprocessTraj.py -c CONFIG_FILE_DIR
 ```
 
 ## :books: References:
