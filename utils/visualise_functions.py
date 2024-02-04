@@ -1,4 +1,3 @@
-
 import cv2
 
 def plot_vehicle(image, centre, dimension, v_color, text, t_color, circle = False, font_scale=1):

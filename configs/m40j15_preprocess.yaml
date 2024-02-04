@@ -1,12 +1,12 @@
 dataset:
   name: 'm40j15'
   description: 'N/A'
-  import_dir: '../Datasets/m40j15/raw'
-  export_dir: '../Datasets/m40j15/processed'
-  map_import_dir: '../Datasets/m40j15/maps/j15.npy'
-  map_export_dir: '../Datasets/m40j15/maps/j15_lms.yaml'
+  import_dir: '../Datasets/m40/raw'
+  export_dir: '../Datasets/m40/processed'
+  map_import_dir: '../Datasets/m40/maps/j15.npy'
+  map_export_dir: '../Datasets/m40/maps/j15_lms.yaml'
   # in dataset with large number of data files, we use fileranges and filestring
-  fileranges: range(1,19) #range(1,19) 
+  fileranges: range(1,207) #range(1,19) 
   filestring: "Tracked_{}.csv"
   dataset_fps: 10
   desired_fps: 5
@@ -33,9 +33,9 @@ ordered_preprocess_functions: # 'all' means function is designed to be applied t
   - ['self.reduce_fps()', 'all']
   - ['exid.calc_svs_povl', 'one']
   - ['self.overwrite_data(source = "frame")', 'all']
-  - ['exid.visualise_tracks', 'one']
+  #- ['exid.visualise_tracks', 'one']
   #- ['exid.plot_traj', 'one']
-  - ['m40.visualise_measurements', 'one']
+  #- ['m40.visualise_measurements', 'one']
   - ['self.export_data()', 'all']
   
 

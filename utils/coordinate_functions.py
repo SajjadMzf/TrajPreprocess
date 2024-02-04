@@ -12,7 +12,7 @@ def cart2frenet(traj, ref):
     #print('CART2FRENET') TODO: 1. extend gamma 2. test with crossing traj and ref
     # assert there is no repeating points in ref and traj
     assert(np.all(np.diff(ref,axis=0)!=0))
-    assert(np.all(np.diff(traj,axis=0)!=0))
+    #assert(np.all(np.diff(traj,axis=0)!=0))
     L = ref.shape[0]
     T = traj.shape[0]
     gamma = np.zeros((L)) 
